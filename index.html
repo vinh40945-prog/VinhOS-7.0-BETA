@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>VinhOS 7.0.4 BETA</title>
+<title>VinhOS 7.0.2 BETA</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0d;touch-action:none}
@@ -222,13 +222,10 @@ button:active{filter:brightness(.82)}
       Xuất toàn bộ dữ liệu (chữ, nhạc, background, hiệu ứng) thành file <code style="color:#a55fff">.vtbt</code> mã hoá. Import lại để khôi phục ngay lập tức.
     </p>
 
-    <div style="display:flex; gap:10px; flex:1;">
-  <button id="vtbtExportBtn" style="background:#3c3c55;color:#fff;flex:1;border-radius:8px;padding:9px 5px;border:none;font-weight:bold;font-size:13px;cursor:pointer">⬇ Export</button>
-  
-  <button id="vtbtImportFileBtn" style="background:#2ea858;color:#fff;flex:1;border-radius:8px;padding:9px 5px;border:none;font-weight:bold;font-size:13px;cursor:pointer">⬆ Import file</button>
-  
-  <input type="file" id="vtbtFileIn" accept=".vtbt" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
-</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button id="vtbtExportBtn" style="background:#559bff;color:#0c0c0e;flex:1">⬇ Xuất file .vtbt</button>
+      <label for="vtbtFileIn" style="background:#2ea858;color:#fff;flex:1;border-radius:8px;padding:9px 15px;cursor:pointer;font-family:Arial,sans-serif;font-weight:bold;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;user-select:none;-webkit-tap-highlight-color:transparent">
+</label>
 <input type="file" id="vtbtFileIn" accept=".vtbt" style="display:none">
     </div>
 
@@ -1109,7 +1106,7 @@ function handleQuestionTap(mx, my) {
 
 function drawSig() {
   ctx.save(); ctx.fillStyle='rgba(55,55,68,.7)'; ctx.font='11px Arial';
-  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.4 | 18T28426VH',W-11,H-5); ctx.restore();
+  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.2 | 18T28426VH',W-11,H-5); ctx.restore();
 }
 
 function drawKaraokeRecBar() {
@@ -1914,42 +1911,6 @@ if (sharedRaw) {
     clearDisplay(true);
   }
 }
-(function() {
-  const btn = document.getElementById('vtbtImportFileBtn');
-  const inp = document.getElementById('vtbtFileIn');
-
-  if (btn && inp) {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      inp.click()
-    });
-
-    inp.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const content = evt.target.result;
-        try {
-          if (typeof handleImportData === 'function') {
-             handleImportData(content);
-          } else {
-             const data = JSON.parse(atob(content)); 
-             if(data.words) textData = data.words;
-             if(data.q) questionData = data.q;
-             showToast("Đã nhập dữ liệu thành công!");
-          }
-        } catch(err) {
-          showToast("Lỗi: File không đúng định dạng!");
-        }
-      };
-      reader.readAsText(file);
-      this.value = ''
-    });
-  }
-})();
 
 document.body.addEventListener('touchstart', () => {
   if (karaokeAudio) { karaokeAudio.play().then(() => karaokeAudio.pause()).catch(()=>{}); }
