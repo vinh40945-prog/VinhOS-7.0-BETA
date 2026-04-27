@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>VinhOS 7.0.2 BETA</title>
+<title>VinhOS 7.0.1 BETA</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0d;touch-action:none}
@@ -224,10 +224,9 @@ button:active{filter:brightness(.82)}
 
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <button id="vtbtExportBtn" style="background:#559bff;color:#0c0c0e;flex:1">⬇ Xuất file .vtbt</button>
-      <label for="vtbtFileIn" style="background:#2ea858; color:#ffffff !important; flex:1; border-radius:8px; padding:10px; cursor:pointer; font-family:sans-serif; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center; text-align:center; min-height:40px; border:none; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-  <span style="display:inline-block;">⬆ Import file</span>
+      <label for="vtbtFileIn" style="background:#2ea858;color:#fff;flex:1;border-radius:8px;padding:9px 15px;cursor:pointer;font-family:Arial,sans-serif;font-weight:bold;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;user-select:none;-webkit-tap-highlight-color:transparent">
+  ⬆ Import file
 </label>
-<input type="file" id="vtbtFileIn" accept=".vtbt" style="display:none">
 <input type="file" id="vtbtFileIn" accept=".vtbt" style="display:none">
     </div>
 
@@ -1108,7 +1107,7 @@ function handleQuestionTap(mx, my) {
 
 function drawSig() {
   ctx.save(); ctx.fillStyle='rgba(55,55,68,.7)'; ctx.font='11px Arial';
-  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.2.1 | 18T28426VH',W-11,H-5); ctx.restore();
+  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.1 | 18T28426VH',W-11,H-5); ctx.restore();
 }
 
 function drawKaraokeRecBar() {
