@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>VinhOS 7.0 BETA</title>
+<title>VinhOS 7.0.1 BETA</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0d;touch-action:none}
@@ -37,12 +37,105 @@ button:active{filter:brightness(.82)}
 #mobWordActions{display:flex;gap:6px;flex-wrap:wrap}
 .mwa{background:rgba(50,50,68,0.95);color:#f5f5f8;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:bold;cursor:pointer}
 
+/* ── KARAOKE MOBILE RECORD OVERLAY ── */
+#karaokeRecOverlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(8,4,18,0.96);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  z-index:60;gap:0;
+}
+#karaokeRecOverlay.show{display:flex}
+#kRecWordDisplay{
+  font-family:Arial,sans-serif;font-weight:bold;
+  font-size:clamp(36px,12vw,80px);
+  color:#f5f5f8;text-align:center;
+  padding:0 24px;
+  letter-spacing:-1px;
+  line-height:1.1;
+  transition:opacity .12s;
+}
+#kRecWordSub{
+  font-family:Arial,sans-serif;font-size:13px;color:#5f5f69;
+  margin-top:8px;text-align:center;
+}
+#kRecProgress{
+  width:calc(100% - 48px);height:4px;
+  background:rgba(165,95,255,.18);border-radius:2px;
+  margin:22px 0 28px;
+  overflow:hidden;
+}
+#kRecProgressBar{height:100%;background:#a55fff;border-radius:2px;transition:width .15s}
+#kRecTapBtn{
+  width:min(220px,60vw);height:min(220px,60vw);
+  border-radius:50%;
+  background:radial-gradient(circle at 38% 34%, rgba(180,120,255,.22), rgba(140,70,255,.08));
+  border:2.5px solid rgba(165,95,255,.6);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;
+  position:relative;
+  transition:transform .08s, border-color .08s;
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+}
+#kRecTapBtn:active{transform:scale(.93);border-color:#a55fff}
+#kRecTapIcon{font-size:52px;line-height:1;margin-bottom:6px}
+#kRecTapLabel{font-family:Arial,sans-serif;font-weight:bold;font-size:15px;color:rgba(200,170,255,.9)}
+#kRecRipple{
+  position:absolute;top:50%;left:50%;
+  width:100%;height:100%;
+  border-radius:50%;
+  transform:translate(-50%,-50%) scale(0);
+  background:rgba(165,95,255,.25);
+  pointer-events:none;
+}
+#kRecTapBtn.rippling #kRecRipple{animation:ripple .4s ease-out forwards}
+@keyframes ripple{to{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
+#kRecStopRow{display:flex;gap:12px;margin-top:32px}
+#kRecStopBtn{
+  background:rgba(235,65,65,.15);border:1.5px solid rgba(235,65,65,.5);
+  color:#eb4141;border-radius:10px;padding:12px 28px;
+  font-family:Arial,sans-serif;font-weight:bold;font-size:14px;cursor:pointer;
+}
+#kRecWordCount{
+  font-family:Arial,sans-serif;font-size:12px;color:rgba(165,95,255,.7);
+  margin-top:14px;
+}
+/* pulse ring behind tap button */
+#kRecPulseRing{
+  position:absolute;top:50%;left:50%;
+  width:calc(100% + 40px);height:calc(100% + 40px);
+  border-radius:50%;border:1.5px solid rgba(165,95,255,.25);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  animation:pulseRing 1.8s ease-out infinite;
+}
+#kRecPulseRing2{
+  position:absolute;top:50%;left:50%;
+  width:calc(100% + 80px);height:calc(100% + 80px);
+  border-radius:50%;border:1px solid rgba(165,95,255,.12);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  animation:pulseRing 1.8s ease-out infinite .6s;
+}
+@keyframes pulseRing{
+  0%{opacity:.8;transform:translate(-50%,-50%) scale(.9)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}
+}
+
+/* ── VTBT EXPORT/IMPORT PANEL ── */
+#vtbtPanel{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;z-index:55;padding:14px}
+#vtbtPanel.hidden{display:none}
+#vtbtDrop{border:2px dashed rgba(85,155,255,.4);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;margin:10px 0;transition:border-color .15s}
+#vtbtDrop:hover{border-color:#559bff}
+#vtbtDrop.drag{border-color:#559bff;background:rgba(85,155,255,.05)}
+
 #toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);background:rgba(18,18,26,.96);border:1px solid rgba(85,155,255,.5);color:#f5f5f8;padding:10px 20px;border-radius:9px;font-size:13px;z-index:70;opacity:0;transition:opacity .3s;pointer-events:none;font-family:Arial,sans-serif;white-space:nowrap}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
+<!-- ── PANELS ── -->
 <div id="bgPanel" class="overlay hidden">
   <div class="panel">
     <h2>Background Settings</h2>
@@ -125,6 +218,57 @@ button:active{filter:brightness(.82)}
   </div>
 </div>
 
+<!-- ── VTBT EXPORT/IMPORT PANEL ── -->
+<div id="vtbtPanel" class="hidden">
+  <div class="panel" style="max-width:440px">
+    <h2 style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px">📦</span> VinhOS Archive (.vtbt)
+    </h2>
+    <p style="font-size:12px;color:#5f5f69;margin-bottom:14px;line-height:1.6">
+      Xuất toàn bộ dữ liệu (chữ, nhạc, background, hiệu ứng) thành file <code style="color:#a55fff">.vtbt</code> mã hoá. Import lại để khôi phục ngay lập tức.
+    </p>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button id="vtbtExportBtn" style="background:#559bff;color:#0c0c0e;flex:1">⬇ Xuất file .vtbt</button>
+      <button id="vtbtImportFileBtn" style="background:#2ea858;color:#fff;flex:1">⬆ Import file</button>
+      <input type="file" id="vtbtFileIn" accept=".vtbt" style="display:none">
+    </div>
+
+    <div id="vtbtDrop">
+      <div style="font-size:28px;margin-bottom:6px">📂</div>
+      <div style="font-size:13px;color:#5f5f69">Hoặc kéo thả file <code style="color:#559bff">.vtbt</code> vào đây</div>
+    </div>
+
+    <div id="vtbtMsg" style="margin-top:10px;font-size:13px;min-height:16px;color:#2ea858"></div>
+
+    <div id="vtbtInfo" style="margin-top:8px;font-size:11px;color:#5f5f69;line-height:1.7"></div>
+
+    <div class="btn-row">
+      <button id="vtbtClose" style="background:#3c3c4e;color:#f5f5f8">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── KARAOKE RECORD MOBILE OVERLAY ── -->
+<div id="karaokeRecOverlay">
+  <div id="kRecWordSub" style="font-size:12px;color:#5f5f69;margin-bottom:4px">Từ tiếp theo:</div>
+  <div id="kRecWordDisplay">—</div>
+  <div id="kRecProgress"><div id="kRecProgressBar" style="width:0%"></div></div>
+  <div style="position:relative;display:flex;align-items:center;justify-content:center">
+    <div id="kRecPulseRing"></div>
+    <div id="kRecPulseRing2"></div>
+    <div id="kRecTapBtn">
+      <div id="kRecRipple"></div>
+      <div id="kRecTapIcon">🎵</div>
+      <div id="kRecTapLabel">NHẤN ĐỂ ĐÁNH DẤU</div>
+    </div>
+  </div>
+  <div id="kRecWordCount"></div>
+  <div id="kRecStopRow">
+    <button id="kRecStopBtn">⏹ Dừng ghi</button>
+  </div>
+</div>
+
 <div id="mobileBar">
   <input id="mobField" type="text" placeholder="Nhập chữ…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
   <button class="mb" id="mobAdd">Add</button>
@@ -203,19 +347,24 @@ let mobTapPending = false, mobTapTarget = -1;
 const bgSrc = { menu: null, display: null };
 const bgVid = { menu: null, display: null };
 const bgPath = { menu: '', display: '' };
+const bgBase64 = { menu: null, display: null };
+const bgMime = { menu: null, display: null };
 
 let karaokeAudio = null;
+let karaokeAudioBase64 = null;
+let karaokeAudioMime = null;
 let karaokeTimings = [];
 let karaokeRecording = false;
 let karaokeRecIdx = 0;
 let karaokePlayRaf = null;
-let autoPlayStarted = false;
+
+let karaokeHighlightIdx = -1;
 
 function newWord(w) {
   return [w, currentColor, false, false, false, false, -1, '', false];
 }
 
-function loadBg(src, target) {
+function loadBg(src, target, b64, mime) {
   const isVid = /\.(mp4|webm|ogg|mov|avi)(\?|#|$)/i.test(src);
   const set = t => {
     if (isVid) {
@@ -231,12 +380,16 @@ function loadBg(src, target) {
       img.onerror = () => showBgMsg('Cannot load image', false);
       img.src = src; bgPath[t] = src;
     }
+    if (b64) { bgBase64[t] = b64; bgMime[t] = mime; }
   };
   target === 'both' ? (set('menu'), set('display')) : set(target);
 }
 
 function clearBg(target) {
-  const clr = t => { if (bgVid[t]) { bgVid[t].pause(); bgVid[t].src = ''; bgVid[t] = null; } bgSrc[t] = null; bgPath[t] = ''; };
+  const clr = t => {
+    if (bgVid[t]) { bgVid[t].pause(); bgVid[t].src = ''; bgVid[t] = null; }
+    bgSrc[t] = null; bgPath[t] = ''; bgBase64[t] = null; bgMime[t] = null;
+  };
   target === 'both' ? (clr('menu'), clr('display')) : clr(target);
 }
 
@@ -567,6 +720,35 @@ function drawBtn(x, y, w, h, label, bg, fg, fs) {
 }
 
 
+function drawKaraokeHighlight() {
+  if (!karaokeRecording || karaokeHighlightIdx < 0) return;
+  const wr = wordRects.find(r => r.idx === karaokeHighlightIdx);
+  if (!wr) return;
+  const pulse = 0.55 + 0.45 * Math.sin(globalTimer * 8);
+  ctx.save();
+  ctx.globalAlpha = 0.18 * pulse;
+  ctx.fillStyle = '#a55fff';
+  ctx.beginPath();
+  ctx.roundRect(wr.x - 8, wr.y - 4, wr.w + 16, wr.lh + 8, 8);
+  ctx.fill();
+  ctx.globalAlpha = 0.9 * pulse;
+  ctx.strokeStyle = '#a55fff';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.roundRect(wr.x - 8, wr.y - 4, wr.w + 16, wr.lh + 8, 8);
+  ctx.stroke();
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillStyle = '#a55fff';
+  const ax = wr.x + wr.w / 2, ay = wr.y - 14;
+  ctx.beginPath();
+  ctx.moveTo(ax, ay + 8);
+  ctx.lineTo(ax - 7, ay);
+  ctx.lineTo(ax + 7, ay);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawInputStatePC() {
   const isK = state === 'KARAOKE_EDIT';
 
@@ -622,7 +804,6 @@ function drawInputStatePC() {
   }
 }
 
-
 function drawInputState() {
   const bx = boxRect();
   const isK = state === 'KARAOKE_EDIT';
@@ -649,8 +830,6 @@ function drawInputState() {
     ctx.fillText('EDIT MODE', bx.x+8, bx.y-10);
   }
   ctx.restore();
-
-  const bxMob = isMobile ? {x:0,y:0,w:W,h:H-60} : bx;
 
   const fs = Math.max(isMobile?18:22, Math.floor((isMobile?H-80:bx.h)/(isMobile?22:26)));
   ctx.font=`bold ${fs}px Arial`;
@@ -720,6 +899,9 @@ function drawInputState() {
   }
   ctx.restore();
 
+
+  if (!isMobile && karaokeRecording) drawKaraokeHighlight();
+
   if (!isMobile && Math.floor(globalTimer*2)%2===0) {
     let cx2, cy2;
     if (wordRects.length) { const lr=wordRects[wordRects.length-1]; cx2=lr.x+lr.w+4; cy2=lr.y+4; }
@@ -745,31 +927,6 @@ function drawInputState() {
       ctx.fillText('Chạm vào chữ để chỉnh • Chạm vùng trống để bỏ chọn',W/2,H-68);
     }
   }
-
-  function drawKaraokeRecBar() {
-  const barH = 60;
-  const mBarH = document.getElementById('mobileBar').classList.contains('show') ? 56 : 0;
-  const by = H - mBarH - barH - 4;
-
-  const word = textData[karaokeRecIdx] ? textData[karaokeRecIdx][0] : '✓ xong';
-  const progress = textData.length ? Math.min(1, karaokeRecIdx/textData.length) : 0;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, by, W, barH);
-
-  ctx.fillStyle = '#a55fff';
-  ctx.fillRect(0, by + barH - 6, W * progress, 6);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 22px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(word, W/2, by + barH/2 - 5);
-
-  ctx.font = '12px Arial';
-  ctx.fillStyle = '#aaa';
-  ctx.fillText(`${karaokeRecIdx + 1}/${textData.length}`, W/2, by + barH/2 + 15);
-}
 }
 
 function menuBtnList() {
@@ -778,6 +935,8 @@ function menuBtnList() {
   const totalH = labels.length*(bh+9)-9;
   return labels.map(([l,c],i) => ({label:l,color:c,rect:{x:bx,y:H/2-totalH/2+i*(bh+9),w:bw,h:bh}}));
 }
+
+function vtbtBtnRect() { return {x:14,y:14,w:isMobile?36:44,h:isMobile?36:44}; }
 
 function drawMenu() {
   ctx.save();
@@ -798,6 +957,21 @@ function drawMenu() {
   });
 
   if (!isMobile) { const r={x:W-190,y:16,w:168,h:38}; drawBtn(r.x,r.y,r.w,r.h,'FULLSCREEN','#2a2a3a','#f5f5f8',13); }
+
+  const vb = vtbtBtnRect();
+  const pulse = 0.7 + 0.3 * Math.sin(globalTimer * 2.2);
+  ctx.save();
+  ctx.globalAlpha = pulse;
+  drawRR(vb.x, vb.y, vb.w, vb.h, 9, 'rgba(30,28,48,.92)');
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(85,155,255,.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(vb.x, vb.y, vb.w, vb.h, 9); ctx.stroke();
+  ctx.fillStyle = '#f5f5f8'; ctx.font = `bold ${isMobile?16:20}px Arial`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('📦', vb.x + vb.w/2, vb.y + vb.h/2);
+  ctx.restore();
+
   if (bgPath.menu||bgPath.display) {
     const p=[bgPath.menu&&`Menu:...${bgPath.menu.slice(-18)}`,bgPath.display&&`Display:...${bgPath.display.slice(-18)}`].filter(Boolean);
     ctx.fillStyle=C_DIM; ctx.font='12px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -808,6 +982,7 @@ function drawMenu() {
 function menuHitAt(mx, my) {
   for (const {label,rect:r} of menuBtnList()) if (hitRect(r,mx,my)) return label;
   if (!isMobile) { const r={x:W-190,y:16,w:168,h:38}; if (hitRect(r,mx,my)) return 'FULLSCREEN'; }
+  if (hitRect(vtbtBtnRect(),mx,my)) return 'VTBT';
   return null;
 }
 
@@ -937,7 +1112,7 @@ function handleQuestionTap(mx, my) {
 
 function drawSig() {
   ctx.save(); ctx.fillStyle='rgba(55,55,68,.7)'; ctx.font='11px Arial';
-  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0 | 18T27426VH',W-11,H-5); ctx.restore();
+  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.1 | 18T28426VH',W-11,H-5); ctx.restore();
 }
 
 function drawKaraokeRecBar() {
@@ -972,6 +1147,20 @@ function drawKaraokeRecBar() {
   ctx.restore();
 }
 
+function drawKaraokeRecBarPC() {
+  if (!karaokeRecording) return;
+  const kb = karaokeBtnRect();
+  const by = kb.y + kb.h + 10;
+  const word = textData[karaokeRecIdx] ? textData[karaokeRecIdx][0] : '✓';
+  const pulse = Math.sin(globalTimer*7)*.5+.5;
+  ctx.save();
+  ctx.fillStyle=`rgba(235,${Math.round(65+50*pulse)},65,.9)`; ctx.font='bold 11px Arial';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(`→ "${word}"`, EBX()+EBW/2, by);
+  ctx.fillStyle='#5f5f69'; ctx.font='10px Arial';
+  ctx.fillText(`${karaokeRecIdx}/${textData.length}`, EBX()+EBW/2, by+16);
+  ctx.restore();
+}
 
 function frame(now) {
   updateRecordBtn();
@@ -1041,21 +1230,6 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-function drawKaraokeRecBarPC() {
-  if (!karaokeRecording) return;
-  const kb = karaokeBtnRect();
-  const by = kb.y + kb.h + 10;
-  const word = textData[karaokeRecIdx] ? textData[karaokeRecIdx][0] : '✓';
-  const pulse = Math.sin(globalTimer*7)*.5+.5;
-  ctx.save();
-  ctx.fillStyle=`rgba(235,${Math.round(65+50*pulse)},65,.9)`; ctx.font='bold 11px Arial';
-  ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.fillText(`→ "${word}"`, EBX()+EBW/2, by);
-  ctx.fillStyle='#5f5f69'; ctx.font='10px Arial';
-  ctx.fillText(`${karaokeRecIdx}/${textData.length}`, EBX()+EBW/2, by+16);
-  ctx.restore();
-}
-
 requestAnimationFrame(t=>{lastTime=t;requestAnimationFrame(frame);});
 
 function handleInputStatePointer(mx, my) {
@@ -1111,15 +1285,14 @@ function handlePointer(mx, my) {
     if (action==='START') {
       state = 'DISPLAY';
       clearDisplay(true);
-      if (karaokeTimings.length > 0) {
-        startKaraokePlayback();
-      }
+      if (karaokeTimings.length > 0) startKaraokePlayback();
     }
     else if (action==='EDIT')       { state='INPUT'; groupSel=[]; mobSelIndices=[]; if (isMobile) showMobileBar(); }
     else if (action==='BACKGROUND') openBgPanel();
     else if (action==='SHARE')      openSharePanel();
     else if (action==='KARAOKE')    openKaraokePanel();
     else if (action==='FULLSCREEN') toggleFullscreen();
+    else if (action==='VTBT')       openVtbtPanel();
     return;
   }
   if (state==='DISPLAY' || state==='DISPLAY_AUTO') {
@@ -1153,17 +1326,6 @@ function goBack() {
 }
 
 canvas.addEventListener('click', e => {
-  if (state === 'KARAOKE_RECORD') {
-  karaokeTimings[karaokeRecIdx] = karaokeAudio.currentTime;
-  karaokeRecIdx++;
-  if (karaokeRecIdx >= textData.length) {
-    karaokeRecording = false;
-    karaokeAudio.pause();
-    state = 'KARAOKE_EDIT';
-  }
-
-  return;
-}
   if (e.ctrlKey||e.metaKey) { handlePointerCtrl(e.clientX,e.clientY); return; }
   handlePointer(e.clientX,e.clientY);
 });
@@ -1237,30 +1399,6 @@ function confirmWord() {
 }
 
 function showMobileBar() {
-  const isK = state==='KARAOKE_EDIT';
-  document.getElementById('mobRecord').onclick = () => {
-  if (state === 'KARAOKE_EDIT') {
-    state = 'KARAOKE_RECORD';
-
-    karaokeTimings = [];
-    karaokeRecIdx = 0;
-    karaokeRecording = true;
-
-    if (karaokeAudio) {
-      karaokeAudio.currentTime = 0;
-      karaokeAudio.play();
-    }
-  }
-  else if (state === 'KARAOKE_RECORD') {
-    karaokeRecording = false;
-
-    if (karaokeAudio) {
-      karaokeAudio.pause();
-    }
-
-    state = 'KARAOKE_EDIT';
-  }
-};
   document.getElementById('mobileBar').classList.add('show');
   setTimeout(()=>document.getElementById('mobField').focus(),80);
 }
@@ -1282,7 +1420,6 @@ document.getElementById('mobClearAll').addEventListener('click', () => {
   document.getElementById('mobField').value=''; hideMobWordPanel();
 });
 
-
 document.getElementById('mobDone').addEventListener('click', () => {
   const v=document.getElementById('mobField').value.trim();
   if (v) { v.split(/\s+/).filter(Boolean).forEach(w=>textData.push(newWord(w))); document.getElementById('mobField').value=''; }
@@ -1295,6 +1432,49 @@ document.getElementById('mobField').addEventListener('keydown', e => {
   if (e.key==='Enter') { document.getElementById('mobAdd').click(); e.preventDefault(); }
 });
 
+function showKaraokeRecOverlay() {
+  updateKaraokeRecOverlay();
+  document.getElementById('karaokeRecOverlay').classList.add('show');
+}
+function hideKaraokeRecOverlay() {
+  document.getElementById('karaokeRecOverlay').classList.remove('show');
+}
+function updateKaraokeRecOverlay() {
+  const word = textData[karaokeRecIdx] ? textData[karaokeRecIdx][0] : '';
+  const done = karaokeRecIdx >= textData.length;
+  document.getElementById('kRecWordDisplay').textContent = done ? '✓ Xong!' : (word || '—');
+  const pct = textData.length ? Math.round(karaokeRecIdx / textData.length * 100) : 0;
+  document.getElementById('kRecProgressBar').style.width = pct + '%';
+  document.getElementById('kRecWordCount').textContent = `${karaokeRecIdx} / ${textData.length} từ`;
+  if (done) {
+    document.getElementById('kRecWordDisplay').style.color = '#2ea858';
+    document.getElementById('kRecTapLabel').textContent = 'Hoàn thành!';
+  } else {
+    document.getElementById('kRecWordDisplay').style.color = '#f5f5f8';
+    document.getElementById('kRecTapLabel').textContent = 'NHẤN ĐỂ ĐÁNH DẤU';
+  }
+}
+
+document.getElementById('kRecTapBtn').addEventListener('click', () => {
+  if (karaokeRecIdx >= textData.length) return;
+  const btn = document.getElementById('kRecTapBtn');
+  btn.classList.remove('rippling');
+  void btn.offsetWidth;
+  btn.classList.add('rippling');
+  setTimeout(() => btn.classList.remove('rippling'), 420);
+  karaokeMarkNext();
+  updateKaraokeRecOverlay();
+});
+
+document.getElementById('kRecTapBtn').addEventListener('touchstart', e => {
+  e.preventDefault();
+  document.getElementById('kRecTapBtn').click();
+}, { passive: false });
+
+document.getElementById('kRecStopBtn').addEventListener('click', () => {
+  stopKaraokeRecord();
+  hideKaraokeRecOverlay();
+});
 
 function showMobWordPanel(idx) {
   mobWordPanelIdx=idx;
@@ -1370,7 +1550,15 @@ document.getElementById('bgBtnLoad').addEventListener('click',()=>{ const v=docu
 document.getElementById('bgBtnClear').addEventListener('click',()=>{ clearBg(bgPickTarget); showBgMsg('Cleared',true); });
 document.getElementById('bgBtnImport').addEventListener('click',()=>document.getElementById('bgFileInput').click());
 document.getElementById('bgFileInput').addEventListener('change',e=>{
-  const f=e.target.files[0]; if(!f) return; loadBg(URL.createObjectURL(f),bgPickTarget); showBgMsg(`Loaded: ${f.name.slice(0,26)}`,true);
+  const f=e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const b64 = ev.target.result.split(',')[1];
+    loadBg(url, bgPickTarget, b64, f.type);
+    showBgMsg(`Loaded: ${f.name.slice(0,26)}`,true);
+  };
+  reader.readAsDataURL(f);
 });
 function updateBgTargetBtns() {
   ['menu','display','both'].forEach(t=>{
@@ -1381,12 +1569,22 @@ function updateBgTargetBtns() {
 }
 document.addEventListener('dragover',e=>e.preventDefault());
 document.addEventListener('drop',e=>{
-  e.preventDefault(); const f=e.dataTransfer.files[0]; if(!f) return;
-  if (f.type.startsWith('audio/') && (state==='KARAOKE_EDIT' || document.getElementById('karaokePanel').classList.contains('hidden')===false)) {
+  e.preventDefault();
+  const f=e.dataTransfer.files[0]; if(!f) return;
+  if (f.name.endsWith('.vtbt')) { importVtbt(f); return; }
+  if (f.type.startsWith('audio/') && (state==='KARAOKE_EDIT' || !document.getElementById('karaokePanel').classList.contains('hidden'))) {
     loadKAudio(f); return;
   }
-  loadBg(URL.createObjectURL(f),bgPickTarget); showBgMsg(`Loaded: ${f.name.slice(0,26)}`,true);
+  const url = URL.createObjectURL(f);
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const b64 = ev.target.result.split(',')[1];
+    loadBg(url, bgPickTarget, b64, f.type);
+    showBgMsg(`Loaded: ${f.name.slice(0,26)}`,true);
+  };
+  reader.readAsDataURL(f);
 });
+
 function openNotePanel(idx) {
   noteEditIdx=idx;
   document.getElementById('notePanelTitle').textContent=`Note: "${textData[idx][0]}"`;
@@ -1439,8 +1637,15 @@ document.getElementById('kFileIn').addEventListener('change', e => { const f=e.t
 
 function loadKAudio(file) {
   if (karaokeAudio) { karaokeAudio.pause(); URL.revokeObjectURL(karaokeAudio.src); }
-  karaokeAudio = new Audio(URL.createObjectURL(file));
+  const url = URL.createObjectURL(file);
+  karaokeAudio = new Audio(url);
   karaokeAudio.preload = 'auto';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    karaokeAudioBase64 = ev.target.result.split(',')[1];
+    karaokeAudioMime = file.type;
+  };
+  reader.readAsDataURL(file);
   document.getElementById('kDropLbl').textContent = file.name.slice(0,36);
   document.getElementById('kFileName').textContent = '✓ ' + file.name.slice(0,40);
   document.getElementById('kBtnOk').disabled = false;
@@ -1458,20 +1663,22 @@ document.getElementById('kBtnOk').addEventListener('click', () => {
 function toggleKaraokeRecord() {
   if (karaokeRecording) {
     stopKaraokeRecord();
+    if (isMobile) hideKaraokeRecOverlay();
   } else {
     if (!textData.length) { showToast('Nhập chữ trước khi ghi hình'); return; }
-    karaokeTimings = []; karaokeRecIdx = 0; karaokeRecording = true;
-    document.getElementById('mobRecord').textContent = '⏹ Stop';
+    karaokeTimings = []; karaokeRecIdx = -1; karaokeRecording = true;
+    karaokeHighlightIdx = 0; 
     karaokeAudio.currentTime = 0;
     karaokeAudio.play().catch(()=>{});
-    showToast('Nhạc đang phát — SPACE để đánh dấu từng từ');
+    showToast('Nhạc đang phát — nhấn để đánh dấu từng từ');
+    if (isMobile) showKaraokeRecOverlay();
   }
 }
 
 function stopKaraokeRecord() {
   karaokeRecording = false;
+  karaokeHighlightIdx = -1;
   if (karaokeAudio) karaokeAudio.pause();
-  document.getElementById('mobRecord').textContent = '⏺ Ghi';
   if (karaokeTimings.length) showToast('Đã lưu ' + karaokeTimings.length + ' mốc • Về menu → START');
 }
 
@@ -1479,7 +1686,14 @@ function karaokeMarkNext() {
   if (!karaokeRecording) return;
   karaokeTimings.push(karaokeAudio ? karaokeAudio.currentTime : 0);
   karaokeRecIdx++;
-  if (karaokeRecIdx >= textData.length) stopKaraokeRecord();
+  karaokeHighlightIdx = karaokeRecIdx;
+  if (karaokeRecIdx >= textData.length) {
+    stopKaraokeRecord();
+    if (isMobile) {
+      updateKaraokeRecOverlay();
+      setTimeout(() => hideKaraokeRecOverlay(), 1200);
+    }
+  }
 }
 
 function startKaraokePlayback() {
@@ -1502,6 +1716,145 @@ function stopKaraokePlayback() {
   if (karaokeAudio) karaokeAudio.pause();
 }
 
+const VTBT_MAGIC = 'VTBT70';
+const VTBT_XOR_KEY = [0x56,0x69,0x6e,0x68,0x4f,0x53,0x37,0x2e,0x30,0x42,0x45,0x54,0x41];
+
+function xorBytes(bytes) {
+  return bytes.map((b, i) => b ^ VTBT_XOR_KEY[i % VTBT_XOR_KEY.length]);
+}
+
+async function exportVtbt() {
+  const payload = {
+    version: 7,
+    created: new Date().toISOString(),
+    words: textData,
+    question: questionData,
+    timings: karaokeTimings,
+    bgMenu: { b64: bgBase64.menu, mime: bgMime.menu },
+    bgDisplay: { b64: bgBase64.display, mime: bgMime.display },
+    audio: { b64: karaokeAudioBase64, mime: karaokeAudioMime }
+  };
+
+  const json = JSON.stringify(payload);
+  const encoder = new TextEncoder();
+  const raw = encoder.encode(json);
+  const obf = xorBytes(Array.from(raw));
+  const buf = new Uint8Array(6 + 4 + obf.length);
+  for (let i = 0; i < 6; i++) buf[i] = VTBT_MAGIC.charCodeAt(i);
+  const view = new DataView(buf.buffer);
+  view.setUint32(6, obf.length, false);
+  buf.set(obf, 10);
+
+  const blob = new Blob([buf], { type: 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+  a.download = `VinhOS_${ts}.vtbt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showVtbtMsg('✓ Xuất thành công!', true);
+  updateVtbtInfo();
+}
+
+function importVtbt(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const buf = new Uint8Array(ev.target.result);
+      const magic = String.fromCharCode(...buf.slice(0, 6));
+      if (magic !== VTBT_MAGIC) throw new Error('Sai định dạng file');
+      const view = new DataView(buf.buffer);
+      const len = view.getUint32(6, false);
+      const obf = Array.from(buf.slice(10, 10 + len));
+      const raw = xorBytes(obf);
+      const json = new TextDecoder().decode(new Uint8Array(raw));
+      const p = JSON.parse(json);
+      if (p.words) textData = p.words;
+      if (p.question) questionData = p.question;
+      if (p.timings) karaokeTimings = p.timings;
+      if (p.bgMenu?.b64 && p.bgMenu?.mime) {
+        const url = b64ToObjectUrl(p.bgMenu.b64, p.bgMenu.mime);
+        loadBg(url, 'menu', p.bgMenu.b64, p.bgMenu.mime);
+      }
+
+      if (p.bgDisplay?.b64 && p.bgDisplay?.mime) {
+        const url = b64ToObjectUrl(p.bgDisplay.b64, p.bgDisplay.mime);
+        loadBg(url, 'display', p.bgDisplay.b64, p.bgDisplay.mime);
+      }
+
+      if (p.audio?.b64 && p.audio?.mime) {
+        const url = b64ToObjectUrl(p.audio.b64, p.audio.mime);
+        if (karaokeAudio) { karaokeAudio.pause(); }
+        karaokeAudio = new Audio(url);
+        karaokeAudio.preload = 'auto';
+        karaokeAudioBase64 = p.audio.b64;
+        karaokeAudioMime = p.audio.mime;
+      }
+
+      showVtbtMsg(`✓ Import thành công! ${p.words?.length||0} từ, ${p.timings?.length||0} mốc nhạc`, true);
+      updateVtbtInfo();
+      showToast('Import .vtbt thành công!');
+    } catch(err) {
+      showVtbtMsg('✗ Lỗi: ' + err.message, false);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function b64ToObjectUrl(b64, mime) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([arr], { type: mime }));
+}
+
+function showVtbtMsg(txt, ok) {
+  const el = document.getElementById('vtbtMsg');
+  el.textContent = txt; el.style.color = ok ? '#2ea858' : '#eb4141';
+}
+
+function updateVtbtInfo() {
+  const lines = [];
+  if (textData.length) lines.push(`📝 ${textData.length} từ`);
+  if (karaokeTimings.length) lines.push(`🎵 ${karaokeTimings.length} mốc nhạc`);
+  if (bgBase64.menu) lines.push(`🖼 BG Menu`);
+  if (bgBase64.display) lines.push(`🖼 BG Display`);
+  if (karaokeAudioBase64) lines.push(`🎧 Nhạc karaoke`);
+  document.getElementById('vtbtInfo').innerHTML = lines.join(' &nbsp;|&nbsp; ') || '(Chưa có dữ liệu)';
+}
+
+function openVtbtPanel() {
+  updateVtbtInfo();
+  showVtbtMsg('', true);
+  document.getElementById('vtbtPanel').classList.remove('hidden');
+}
+function closeVtbtPanel() { document.getElementById('vtbtPanel').classList.add('hidden'); }
+
+document.getElementById('vtbtClose').addEventListener('click', closeVtbtPanel);
+document.getElementById('vtbtExportBtn').addEventListener('click', () => {
+  if (!textData.length && !karaokeAudioBase64 && !bgBase64.menu && !bgBase64.display) {
+    showVtbtMsg('Không có dữ liệu để xuất', false); return;
+  }
+  exportVtbt();
+});
+document.getElementById('vtbtImportFileBtn').addEventListener('click', () => document.getElementById('vtbtFileIn').click());
+document.getElementById('vtbtFileIn').addEventListener('change', e => {
+  const f = e.target.files[0]; if (f) importVtbt(f);
+});
+document.getElementById('vtbtDrop').addEventListener('dragover', e => {
+  e.preventDefault();
+  document.getElementById('vtbtDrop').classList.add('drag');
+});
+document.getElementById('vtbtDrop').addEventListener('dragleave', () => {
+  document.getElementById('vtbtDrop').classList.remove('drag');
+});
+document.getElementById('vtbtDrop').addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('vtbtDrop').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.vtbt')) importVtbt(f);
+  else showVtbtMsg('Chỉ chấp nhận file .vtbt', false);
+});
 
 function serializeData() { try { return btoa(unescape(encodeURIComponent(JSON.stringify({words:textData,q:questionData})))); } catch { return ''; } }
 function deserializeData(s) {
@@ -1530,41 +1883,44 @@ document.getElementById('shareLinkInput').addEventListener('click',e=>e.target.s
 function showToast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2600); }
 function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen().catch(()=>{}); }
 
+function updateRecordBtn() {
+  const btn = document.getElementById('mobRecord');
+  if (!btn) return;
+  if (state === 'KARAOKE_EDIT' || state === 'KARAOKE_RECORD') {
+    btn.style.display = 'block';
+    btn.textContent = karaokeRecording ? '⏹ Stop' : '⏺ Ghi';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+document.getElementById('mobRecord').addEventListener('click', () => {
+  if (state === 'KARAOKE_EDIT') {
+    if (!textData.length) { showToast('Nhập chữ trước khi ghi hình'); return; }
+    karaokeTimings = []; karaokeRecIdx = 0; karaokeRecording = true;
+    karaokeHighlightIdx = 0;
+    if (karaokeAudio) { karaokeAudio.currentTime = 0; karaokeAudio.play().catch(()=>{}); }
+    showKaraokeRecOverlay();
+  } else if (karaokeRecording) {
+    stopKaraokeRecord();
+    hideKaraokeRecOverlay();
+  }
+});
+
 const urlParams=new URLSearchParams(location.search), sharedRaw=urlParams.get('d');
 if (sharedRaw) {
   const p=deserializeData(sharedRaw);
-  if (p?.words?.length) { 
-    textData=p.words; 
-    if (p.q) questionData=p.q; 
-    state='DISPLAY'; 
-    clearDisplay(true); 
+  if (p?.words?.length) {
+    textData=p.words;
+    if (p.q) questionData=p.q;
+    state='DISPLAY';
+    clearDisplay(true);
   }
 }
-function updateRecordBtn() {
-  const btn = document.getElementById('mobRecord');
 
-  if (!btn) return;
-
-  if (state === 'KARAOKE_EDIT') {
-    btn.style.display = 'block';
-    btn.textContent = '⏺ Ghi';
-  } 
-  else if (state === 'KARAOKE_RECORD') {
-    btn.style.display = 'block';
-    btn.textContent = '⏹ Stop';
-  } 
-  else {
-    btn.style.display = 'none';
-}
-}
 document.body.addEventListener('touchstart', () => {
-  if (karaokeAudio) {
-    karaokeAudio.play().then(() => {
-      karaokeAudio.pause();
-    });
-  }
+  if (karaokeAudio) { karaokeAudio.play().then(() => karaokeAudio.pause()).catch(()=>{}); }
 }, { once: true });
-
 </script>
 </body>
 </html>
