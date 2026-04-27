@@ -36,8 +36,6 @@ button:active{filter:brightness(.82)}
 .mwe{background:#3c3c4e;color:#f5f5f8;border:none;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:bold;cursor:pointer}
 #mobWordActions{display:flex;gap:6px;flex-wrap:wrap}
 .mwa{background:rgba(50,50,68,0.95);color:#f5f5f8;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:bold;cursor:pointer}
-
-/* ── KARAOKE MOBILE RECORD OVERLAY ── */
 #karaokeRecOverlay{
   position:fixed;top:0;left:0;width:100%;height:100%;
   background:rgba(8,4,18,0.96);
@@ -100,7 +98,6 @@ button:active{filter:brightness(.82)}
   font-family:Arial,sans-serif;font-size:12px;color:rgba(165,95,255,.7);
   margin-top:14px;
 }
-/* pulse ring behind tap button */
 #kRecPulseRing{
   position:absolute;top:50%;left:50%;
   width:calc(100% + 40px);height:calc(100% + 40px);
@@ -122,7 +119,6 @@ button:active{filter:brightness(.82)}
   100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}
 }
 
-/* ── VTBT EXPORT/IMPORT PANEL ── */
 #vtbtPanel{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;z-index:55;padding:14px}
 #vtbtPanel.hidden{display:none}
 #vtbtDrop{border:2px dashed rgba(85,155,255,.4);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;margin:10px 0;transition:border-color .15s}
@@ -135,7 +131,6 @@ button:active{filter:brightness(.82)}
 <body>
 <canvas id="c"></canvas>
 
-<!-- ── PANELS ── -->
 <div id="bgPanel" class="overlay hidden">
   <div class="panel">
     <h2>Background Settings</h2>
@@ -218,7 +213,6 @@ button:active{filter:brightness(.82)}
   </div>
 </div>
 
-<!-- ── VTBT EXPORT/IMPORT PANEL ── -->
 <div id="vtbtPanel" class="hidden">
   <div class="panel" style="max-width:440px">
     <h2 style="display:flex;align-items:center;gap:8px">
@@ -249,7 +243,6 @@ button:active{filter:brightness(.82)}
   </div>
 </div>
 
-<!-- ── KARAOKE RECORD MOBILE OVERLAY ── -->
 <div id="karaokeRecOverlay">
   <div id="kRecWordSub" style="font-size:12px;color:#5f5f69;margin-bottom:4px">Từ tiếp theo:</div>
   <div id="kRecWordDisplay">—</div>
@@ -1837,7 +1830,7 @@ document.getElementById('vtbtExportBtn').addEventListener('click', () => {
   }
   exportVtbt();
 });
-document.getElementById('vtbtImportFileBtn').addEventListener('click', () => document.getElementById('vtbtFileIn').click());
+
 document.getElementById('vtbtFileIn').addEventListener('change', e => {
   const f = e.target.files[0]; if (f) importVtbt(f);
 });
