@@ -530,7 +530,6 @@ function calcLayout() {
 
 function rehash() { return textData.slice(startIdx,wordIndex).map(r=>r.join(',')).join('|'); }
 
-// ── Layout constants ──────────────────────────────────────────────────────────
 const SW=36, SH=36, SX0=14, SY0=14, SCOLS=6;
 const EBW=120, EBH=38;
 function EBX() { return W - EBW - 14; }
@@ -567,11 +566,10 @@ function drawBtn(x, y, w, h, label, bg, fg, fs) {
   ctx.restore();
 }
 
-// ── PC sidebar ────────────────────────────────────────────────────────────────
+
 function drawInputStatePC() {
   const isK = state === 'KARAOKE_EDIT';
 
-  // sidebar background
   const lastBtn = isK ? karaokeBtnRect() : questionBtnRect();
   ctx.save();
   ctx.globalAlpha = .55;
@@ -582,7 +580,6 @@ function drawInputStatePC() {
   ctx.beginPath(); ctx.roundRect(EBX()-10, 8, EBW+20, lastBtn.y+lastBtn.h+8, 12); ctx.stroke();
   ctx.restore();
 
-  // colour swatches row — shown above sidebar, left side
   swatchRects().forEach(({color,rect:r}) => {
     drawRR(r.x,r.y,r.w,r.h,6,color);
     if (color===currentColor) {
@@ -591,7 +588,6 @@ function drawInputStatePC() {
     }
   });
 
-  // effect buttons
   effBtnRects().forEach(({label,color,idx,rect:r}) => {
     const sel = groupSel.length>0 ? groupSel : (editingIndex>=0 ? [editingIndex] : []);
     const active = sel.length>0 && sel.every(i=>textData[i] && textData[i][idx]);
@@ -626,14 +622,13 @@ function drawInputStatePC() {
   }
 }
 
-// ── Text editing area ─────────────────────────────────────────────────────────
+
 function drawInputState() {
   const bx = boxRect();
   const isK = state === 'KARAOKE_EDIT';
 
   if (!isMobile) drawInputStatePC();
 
-  // text area background
   ctx.save();
   ctx.globalAlpha = .78;
   drawRR(bx.x,bx.y,bx.w,bx.h,10,'rgba(14,14,22,.92)');
@@ -643,7 +638,6 @@ function drawInputState() {
   ctx.beginPath(); ctx.roundRect(bx.x,bx.y,bx.w,bx.h,10); ctx.stroke();
   ctx.restore();
 
-  // mode label top-left
   ctx.save();
   if (isK) {
     ctx.fillStyle='rgba(165,95,255,.9)'; ctx.font='bold 11px Arial';
@@ -778,7 +772,6 @@ function drawInputState() {
 }
 }
 
-// ── Menu ──────────────────────────────────────────────────────────────────────
 function menuBtnList() {
   const bw=isMobile?Math.min(W-28,270):252, bh=isMobile?50:56, bx=W/2-bw/2;
   const labels = [['START','#559bff'],['EDIT','#3c3c4e'],['BACKGROUND','#3c3c4e'],['SHARE','#2ea858'],['KARAOKE','#a55fff']];
@@ -818,7 +811,6 @@ function menuHitAt(mx, my) {
   return null;
 }
 
-// ── Display cleared state ─────────────────────────────────────────────────────
 function drawCleared() {
   ctx.save();
   const dsp=isMobile?60:84, dbx=W/2-dsp, dby=H/2;
@@ -833,7 +825,6 @@ function drawCleared() {
   ctx.restore();
 }
 
-// ── Question feature ──────────────────────────────────────────────────────────
 function initQuestionBtnPos() {
   const btnW=isMobile?Math.min(W*.42,160):200, btnH=isMobile?52:62;
   const gap=isMobile?20:30, totalW=btnW*2+gap;
@@ -949,7 +940,6 @@ function drawSig() {
   ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0 | 18T27426VH',W-11,H-5); ctx.restore();
 }
 
-// ── Karaoke rec bar overlay (mobile) ─────────────────────────────────────────
 function drawKaraokeRecBar() {
   const barH = 46;
   const mBarH = document.getElementById('mobileBar').classList.contains('show') ? 56 : 0;
@@ -982,7 +972,7 @@ function drawKaraokeRecBar() {
   ctx.restore();
 }
 
-// ── Main render loop ──────────────────────────────────────────────────────────
+
 function frame(now) {
   updateRecordBtn();
   const dt=Math.min((now-lastTime)/1000,.05); lastTime=now; flashTimer+=dt; globalTimer+=dt;
@@ -1051,7 +1041,6 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-// PC karaoke recording status shown below sidebar
 function drawKaraokeRecBarPC() {
   if (!karaokeRecording) return;
   const kb = karaokeBtnRect();
@@ -1069,7 +1058,6 @@ function drawKaraokeRecBarPC() {
 
 requestAnimationFrame(t=>{lastTime=t;requestAnimationFrame(frame);});
 
-// ── Input handling ────────────────────────────────────────────────────────────
 function handleInputStatePointer(mx, my) {
   if (isMobile) {
     if (mx>=12&&mx<=92&&my>=H-48&&my<=H-12) { textData=[]; inputBuffer=''; editingIndex=-1; groupSel=[]; mobSelIndices=[]; return; }
@@ -1083,7 +1071,7 @@ function handleInputStatePointer(mx, my) {
     } else { mobSelIndices=[]; hideMobWordPanel(); }
     return;
   }
-  // PC
+
   const kb = karaokeBtnRect();
   if (state==='KARAOKE_EDIT' && hitRect(kb,mx,my)) { toggleKaraokeRecord(); return; }
   for (const {idx,rect:r} of effBtnRects()) {
@@ -1248,7 +1236,6 @@ function confirmWord() {
   inputBuffer='';
 }
 
-// ── Mobile bar ────────────────────────────────────────────────────────────────
 function showMobileBar() {
   const isK = state==='KARAOKE_EDIT';
   document.getElementById('mobRecord').onclick = () => {
@@ -1373,7 +1360,6 @@ document.getElementById('mwaDelete').addEventListener('click',()=>{
   targets.forEach(i=>textData.splice(i,1)); mobSelIndices=[]; hideMobWordPanel();
 });
 
-// ── Background panel ──────────────────────────────────────────────────────────
 function openBgPanel() { document.getElementById('bgPanel').classList.remove('hidden'); updateBgInfo(); }
 function closeBgPanel() { document.getElementById('bgPanel').classList.add('hidden'); }
 document.getElementById('bgBtnClose').addEventListener('click',closeBgPanel);
@@ -1401,8 +1387,6 @@ document.addEventListener('drop',e=>{
   }
   loadBg(URL.createObjectURL(f),bgPickTarget); showBgMsg(`Loaded: ${f.name.slice(0,26)}`,true);
 });
-
-// ── Note panel ────────────────────────────────────────────────────────────────
 function openNotePanel(idx) {
   noteEditIdx=idx;
   document.getElementById('notePanelTitle').textContent=`Note: "${textData[idx][0]}"`;
@@ -1419,7 +1403,6 @@ document.getElementById('noteInput').addEventListener('keydown',e=>{
   else if (e.key==='Escape') closeNotePanel();
 });
 
-// ── Question panel ────────────────────────────────────────────────────────────
 function openQuestionPanel() {
   document.getElementById('qYesText').value=questionData.yesText||'';
   document.getElementById('qYesLabel').value=questionData.yesLabel||'Yes';
@@ -1437,7 +1420,6 @@ document.getElementById('qSave').addEventListener('click',()=>{
 document.getElementById('qRemove').addEventListener('click',()=>{ questionData={active:false,yesText:'',yesLabel:'Yes',noLabel:'No'}; closeQuestionPanel(); });
 document.getElementById('qCancel').addEventListener('click',closeQuestionPanel);
 
-// ── Karaoke ───────────────────────────────────────────────────────────────────
 function openKaraokePanel() {
   document.getElementById('kFileName').textContent = karaokeAudio ? '✓ File đã chọn trước đó' : '';
   document.getElementById('kBtnOk').disabled = !karaokeAudio;
@@ -1520,7 +1502,7 @@ function stopKaraokePlayback() {
   if (karaokeAudio) karaokeAudio.pause();
 }
 
-// ── Share ─────────────────────────────────────────────────────────────────────
+
 function serializeData() { try { return btoa(unescape(encodeURIComponent(JSON.stringify({words:textData,q:questionData})))); } catch { return ''; } }
 function deserializeData(s) {
   try {
