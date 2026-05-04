@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>VinhOS 7.0.5 BETA</title>
+<title>VinhOS 7.0.5.1 BETA</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0d;touch-action:none}
@@ -926,7 +926,7 @@ function drawMenu() {
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('VinhOS',W/2,H/2-(isMobile?170:220));
   ctx.font=`${isMobile?13:17}px Arial`; ctx.fillStyle=C_DIM;
-  ctx.fillText('v7.0',W/2,H/2-(isMobile?136:180));
+  ctx.fillText('v7.0.5.1',W/2,H/2-(isMobile?136:180));
   ctx.restore();
 
   menuBtnList().forEach(({label,color,rect:r}) => {
@@ -986,7 +986,7 @@ function initQuestionBtnPos() {
   const gap=isMobile?20:30, totalW=btnW*2+gap;
   const baseY = H*0.68;
   questionNoBtn.x  = W/2-totalW/2+btnW+gap+btnW/2;
-  questionNoBtn.y  = baseY+btnH/2;
+  questionNoBtn.y  = baseY; 
   questionNoBtn.tx = questionNoBtn.x; questionNoBtn.ty = questionNoBtn.y;
   questionNoBtn.vx = 0; questionNoBtn.vy = 0;
 }
@@ -995,25 +995,18 @@ function dodgeNoBtn(tapX, tapY) {
   const btnW=isMobile?Math.min(W*.42,160):200, btnH=isMobile?52:62;
   const padX=btnW/2+30, padY=btnH/2+30;
   const safeL=padX, safeR=W-padX, safeT=padY+60, safeB=H-padY-50;
-  const dx=questionNoBtn.tx-tapX, dy=questionNoBtn.ty-tapY;
-  const dist=Math.sqrt(dx*dx+dy*dy)||1;
-  const push=220+Math.random()*100;
-  let nx=questionNoBtn.tx+(dx/dist)*push+(Math.random()-.5)*80;
-  let ny=questionNoBtn.ty+(dy/dist)*push+(Math.random()-.5)*80;
-  nx=Math.max(safeL,Math.min(safeR,nx)); ny=Math.max(safeT,Math.min(safeB,ny));
-  questionNoBtn.tx=nx; questionNoBtn.ty=ny;
+
+  questionNoBtn.tx = safeL + Math.random() * (safeR - safeL);
+  questionNoBtn.ty = safeT + Math.random() * (safeB - safeT);
 }
 
 function updateNoBtnPhysics(dt) {
-  const fx=(questionNoBtn.tx-questionNoBtn.x)*14, fy=(questionNoBtn.ty-questionNoBtn.y)*14;
-  questionNoBtn.vx=(questionNoBtn.vx+fx*dt)*.65; questionNoBtn.vy=(questionNoBtn.vy+fy*dt)*.65;
-  questionNoBtn.x+=questionNoBtn.vx*dt; questionNoBtn.y+=questionNoBtn.vy*dt;
+  const speed = 35; 
+  questionNoBtn.x += (questionNoBtn.tx - questionNoBtn.x) * speed * dt;
+  questionNoBtn.y += (questionNoBtn.ty - questionNoBtn.y) * speed * dt;
 }
 
-function drawQuestionScreen(dt) {
-  ctx.save();
-  ctx.globalAlpha=.82; ctx.fillStyle='#0a0a0d'; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
-  for (const a of activeAnims) a.draw(false);
+function drawQuestionButtonsOnly(dt) {
   const btnW=isMobile?Math.min(W*.42,160):200, btnH=isMobile?52:62;
   const gap=isMobile?20:30, totalW=btnW*2+gap;
   const yesBx=W/2-totalW/2, yesBy=H*0.68-btnH/2;
@@ -1024,7 +1017,6 @@ function drawQuestionScreen(dt) {
   const noX=questionNoBtn.x-btnW/2, noY=questionNoBtn.y-btnH/2;
   ctx.save(); ctx.shadowColor='rgba(235,80,80,.4)'; ctx.shadowBlur=16;
   drawBtn(noX,noY,btnW,btnH,nl,'#3c1a1a','#eb5555',btnFS); ctx.restore();
-  ctx.restore();
 }
 
 function drawYesResult() {
@@ -1060,6 +1052,11 @@ function advanceDisplay() {
     wordIndex++;
     if (textData[wordIndex-1][2]) { startIdx=wordIndex-1; activeAnims=[]; starSpawned.clear(); clearGlow(); }
     isCleared=false;
+    
+    if (wordIndex === textData.length && questionData.active) {
+      questionState = 'question';
+      initQuestionBtnPos();
+    }
   } else {
     if (questionData.active) { questionState='question'; initQuestionBtnPos(); }
     else { clearDisplay(true); }
@@ -1082,7 +1079,7 @@ function handleQuestionTap(mx, my) {
 
 function drawSig() {
   ctx.save(); ctx.fillStyle='rgba(55,55,68,.7)'; ctx.font='11px Arial';
-  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.5 | 18T28426VH',W-11,H-5); ctx.restore();
+  ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('VinhOS 7.0.5.1 | 18T28426VH',W-11,H-5); ctx.restore();
 }
 
 function drawKaraokeRecBarPC() {
@@ -1118,12 +1115,16 @@ function frame(now) {
     if (state==='KARAOKE_EDIT' && !isMobile) drawKaraokeRecBarPC();
     if (isMobile) drawBackBtn();
   } else if (state==='DISPLAY') {
-    if (questionState==='question') { drawQuestionScreen(dt); }
-    else if (questionState==='yesResult') { drawYesResult(); }
+    if (questionState==='yesResult') { drawYesResult(); }
     else {
       const fo=Math.sin(flashTimer*FLASH_SPD*Math.PI*2)>0;
       const ff=activeAnims.some(a=>a.flash&&a.liss&&a.flashActive);
       if (ff&&fo) { ctx.fillStyle='#f8f8f8'; ctx.fillRect(0,0,W,H); drawBg('display',.06,1); }
+
+      if (questionState==='question') {
+        ctx.save(); ctx.globalAlpha=.82; ctx.fillStyle='#0a0a0d'; ctx.fillRect(0,0,W,H); ctx.restore();
+      }
+
       if (isCleared) { drawCleared(); }
       else {
         const h=rehash();
@@ -1155,6 +1156,10 @@ function frame(now) {
         glowRings=glowRings.filter(r=>{const ok=r.update(dt);if(ok)r.draw();return ok;});
         for (const a of activeAnims) a.draw(fo&&!ff);
         if (bottomNote) { bottomNote.update(dt); bottomNote.draw(); }
+      }
+
+      if (questionState==='question') {
+        drawQuestionButtonsOnly(dt);
       }
     }
     drawBackBtn();
