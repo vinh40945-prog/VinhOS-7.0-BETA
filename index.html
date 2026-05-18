@@ -300,7 +300,7 @@ let karaokeTimings = [], karaokeRecording = false, karaokeRecIdx = 0, karaokePla
 
 // Obfuscated easter egg variables
 const _0x1a=atob('Z2FtZQ=='),_0x1b=atob('MTYwNTIwMDk='),_0x1c=atob('c2FvIGLhuqFuIHTDrG0gxJHGsOG7o2MgxJHhur9uIMSRw6J5'),_0x1d=atob('WW91IFdpbiEh'),_0x1e=atob('bmjhuq1wIG3Dow==');
-let _lC=0,_lT=0,_jS=0,_jI=new Image(),_jP=[],_jC=0,_jR=0,_jW=0,_jH=0,_jX=0,_jY=0,_jTi=0,_jD=null,_pX=0,_pY=0;
+let _lC=0,_lT=0,_jS=0,_jI=new Image(),_jP=[],_jC=0,_jR=0,_jW=0,_jH=0,_jX=0,_jY=0,_jTi=0,_jD=null,_pX=0,_pY=0,_jLevel=1;
 let _jEH=[], _jEV=[];
 let _jD_groups=[], _pXs=[], _pYs=[], _jNextGid=1000;
 
@@ -383,13 +383,15 @@ function drawPiece(p) {
     const ox = p.x, oy = p.y;
     ctx.save();
     
-    if (!p.held && p.tilt !== undefined) {
+    if (!p.held && p.tilt !== undefined && _jS < 5) {
         let currentTilt = p.tilt;
-        if (_jS < 5) {
-            currentTilt += Math.sin(_jTi * 1.5 + p.noiseSeed) * 0.03; 
-        }
+        currentTilt += Math.sin(_jTi * 1.5 + p.noiseSeed) * 0.03; 
         ctx.translate(ox + p.w/2, oy + p.h/2);
         ctx.rotate(currentTilt);
+        ctx.translate(-(ox + p.w/2), -(oy + p.h/2));
+    } else if (_jS === 5 && p.tilt !== undefined) {
+        ctx.translate(ox + p.w/2, oy + p.h/2);
+        ctx.rotate(p.tilt);
         ctx.translate(-(ox + p.w/2), -(oy + p.h/2));
     }
 
@@ -412,18 +414,22 @@ function drawPiece(p) {
             ctx.fillRect(ox + g.rx*p.w, oy + g.ry*p.h, g.sz, g.sz);
         }
     }
-    ctx.globalAlpha = 0.16;
-    ctx.fillStyle = '#000';
-    const ev = 6;
-    ctx.fillRect(ox, oy, ev, p.h);
-    ctx.fillRect(ox+p.w-ev, oy, ev, p.h);
-    ctx.fillRect(ox, oy, p.w, ev);
-    ctx.fillRect(ox, oy+p.h-ev, p.w, ev);
-    ctx.restore();
-    _jBuildPath(p, ox, oy);
-    ctx.lineWidth = p.held ? 1.6 : 0.75;
-    ctx.strokeStyle = p.held ? 'rgba(175,130,255,0.9)' : 'rgba(255,255,255,0.48)';
-    ctx.stroke();
+    if (_jS < 5 || p.held) {
+        ctx.globalAlpha = 0.16;
+        ctx.fillStyle = '#000';
+        const ev = 6;
+        ctx.fillRect(ox, oy, ev, p.h);
+        ctx.fillRect(ox+p.w-ev, oy, ev, p.h);
+        ctx.fillRect(ox, oy, p.w, ev);
+        ctx.fillRect(ox, oy+p.h-ev, p.w, ev);
+        ctx.restore();
+        _jBuildPath(p, ox, oy);
+        ctx.lineWidth = p.held ? 1.6 : 0.75;
+        ctx.strokeStyle = p.held ? 'rgba(175,130,255,0.9)' : 'rgba(255,255,255,0.48)';
+        ctx.stroke();
+    } else {
+        ctx.restore();
+    }
     ctx.restore();
 }
 
@@ -461,13 +467,24 @@ function _jNearestEdge(p) {
     return { x: tx, y: ty };
 }
 
-function _jInitPuzzle() {
-    const grids = [];
+function _jInitPuzzle(isExploding = false) {
+    let minN, maxN;
     
-    // Yêu cầu: Số lượng mảnh ghép từ 9 đến 20 mảnh
-    for (let r = 2; r <= 6; r++) {
-        for (let c = 2; c <= 6; c++) {
-            if (r * c >= 9 && r * c <= 20) {
+    if (_jLevel === 1) {
+        minN = 4; maxN = 9; // 100% dễ
+    } else if (_jLevel === 2) {
+        minN = 10; maxN = 16;
+    } else if (_jLevel === 3) {
+        minN = 16; maxN = 25;
+    } else {
+        minN = 25; maxN = 40;
+    }
+
+    const grids = [];
+    for (let r = 2; r <= 7; r++) {
+        for (let c = 2; c <= 7; c++) {
+            const n = r * c;
+            if (n >= minN && n <= maxN) {
                 const pieceAspect = (_jI.width / c) / (_jI.height / r);
                 const diff = Math.max(pieceAspect, 1 / pieceAspect); 
                 grids.push({ r, c, diff });
@@ -475,19 +492,16 @@ function _jInitPuzzle() {
         }
     }
     
-    grids.sort((a, b) => a.diff - b.diff);
+    if (grids.length === 0) grids.push({r: 3, c: 3, diff: 1}); 
     
+    grids.sort((a, b) => a.diff - b.diff);
     const topGrids = grids.slice(0, 2);
     const pick = topGrids[Math.floor(Math.random() * topGrids.length)];
     
     _jC = pick.c; _jR = pick.r;
 
-    // THU NHỎ KÍCH THƯỚC BỨC ẢNH VÀ MẢNH GHÉP DỰA TRÊN THIẾT BỊ
-    // Mobile: chiếm tối đa 80% chiều rộng, 70% chiều cao
-    // PC: chiếm tối đa 60% chiều rộng, 65% chiều cao
     const maxWidth = isMobile ? W * 0.8 : W * 0.6;
     const maxHeight = isMobile ? H * 0.7 : H * 0.65;
-    
     const sc = Math.min(maxWidth / _jI.width, maxHeight / _jI.height);
     
     _jW = _jI.width * sc; _jH = _jI.height * sc;
@@ -499,32 +513,74 @@ function _jInitPuzzle() {
     for (let r = 0; r < _jR; r++) { _jEV[r] = []; for (let c = 0; c <= _jC; c++) _jEV[r][c] = (c === 0 || c === _jC) ? _jGenEdge(true) : _jGenTabEdge(); }
 
     _jP = [];
+    const N = _jC * _jR;
+    
+    const mg = 15;
+    const L1 = Math.max(0, W - pw - mg * 2);
+    const L2 = Math.max(0, H - ph - mg * 2);
+    const Peri = L1 * 2 + L2 * 2;
+    const spacing = Peri / N;
+    
+    let edgePoints = [];
+    for (let i = 0; i < N; i++) {
+        const noise = (Math.random() - 0.5) * spacing * 0.5;
+        let d = i * spacing + spacing / 2 + noise;
+        d = (d % Peri + Peri) % Peri; 
+        
+        let px, py;
+        if (d < L1) { px = mg + d; py = mg; }
+        else if (d < L1 + L2) { px = W - pw - mg; py = mg + (d - L1); }
+        else if (d < L1 * 2 + L2) { px = W - pw - mg - (d - L1 - L2); py = H - ph - mg; }
+        else { px = mg; py = H - ph - mg - (d - L1 * 2 - L2); }
+        
+        edgePoints.push({ x: px, y: py });
+    }
+    
+    for (let i = edgePoints.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [edgePoints[i], edgePoints[j]] = [edgePoints[j], edgePoints[i]];
+    }
+
     for (let r = 0; r < _jR; r++) for (let c = 0; c < _jC; c++) {
+        const i = r * _jC + c;
+        
+        const startX = isExploding ? (_jX + c * pw) : edgePoints[i].x;
+        const startY = isExploding ? (_jY + r * ph) : edgePoints[i].y;
+
         _jP.push({
-            id: r * _jC + c, c, r,
-            x: 0, y: 0,
+            id: i, c, r,
+            x: startX, y: startY,
             tx: _jX + c * pw, ty: _jY + r * ph,
-            tgX: 0, tgY: 0,
+            tgX: edgePoints[i].x, tgY: edgePoints[i].y,
             w: pw, h: ph,
             held: false, offX: 0, offY: 0,
-            driftState: 'idle', driftTimer: 0, idleTimer: 0, stateTimer: 0, justDropped: false,
+            driftState: isExploding ? 'exploding' : 'idle', 
+            driftTimer: 0, idleTimer: 0, stateTimer: 0, justDropped: false,
             noiseSeed: Math.random() * 9999,
-            tilt: (Math.random() - 0.5) * 0.04,
+            tilt: 0, // Không giữ lỗi nghiêng nữa
+            exRot: isExploding ? (Math.random() - 0.5) * 12 : 0, 
         });
     }
-    _jP.forEach(p => {
-        _jBakeGrain(p);
-        const pos = _jEdgePos(p.w, p.h);
-        p.x = pos.x; p.y = pos.y; p.tgX = pos.x; p.tgY = pos.y;
-    });
+    _jP.forEach(p => _jBakeGrain(p));
 
     _jS = 4; _jTi = 0; _jD = null; _jD_groups = []; _pXs = []; _pYs = [];
 }
 
 function _jSnapThresh(p) { return Math.min(p.w, p.h) * 0.40; }
+
 function _jCheckWin() {
     if (_jP.length === 0) return false;
-    return _jP.every(p => Math.hypot(p.x - p.tx, p.y - p.ty) < _jSnapThresh(p));
+    if (_jP.some(p => p.held)) return false;
+
+    const ref = _jP[0];
+    const dx = ref.x - ref.tx;
+    const dy = ref.y - ref.ty;
+    
+    return _jP.every(p => {
+        const expectX = p.tx + dx;
+        const expectY = p.ty + dy;
+        return Math.hypot(p.x - expectX, p.y - expectY) < _jSnapThresh(p);
+    });
 }
 
 function _dJ(dt) {
@@ -533,8 +589,6 @@ function _dJ(dt) {
     const won = (_jS === 5);
 
     if (!won) {
-        // Tự động tính toán thời gian delay khi rớt mảnh ghép
-        // Nếu 9 mảnh thì delay là 2s. Nếu 20 mảnh thì delay là ~4.2s.
         const totalPieces = _jP.length;
         const dropDelay = 2.0 + Math.max(0, totalPieces - 9) * 0.2;
 
@@ -542,11 +596,33 @@ function _dJ(dt) {
             if (p.held) { 
                 p.idleTimer = 0; 
                 p.driftState = 'idle';
+                p.tilt = 0;
                 return; 
             }
-            p.idleTimer += dt;
+            
+            if (p.driftState === 'exploding') {
+                const dx = p.tgX - p.x;
+                const dy = p.tgY - p.y;
+                const dist = Math.hypot(dx, dy);
+                
+                const speed = Math.max(150, dist * 6); 
+                const step = speed * dt;
+                
+                if (dist <= step || dist < 2) {
+                    p.x = p.tgX; p.y = p.tgY;
+                    p.driftState = 'idle';
+                    p.idleTimer = 0;
+                    p.tilt = 0; // Trả về góc thẳng đứng khi nổ xong
+                } else {
+                    p.x += (dx / dist) * step;
+                    p.y += (dy / dist) * step;
+                    p.tilt += p.exRot * dt;
+                    p.exRot *= 0.90; 
+                }
+                return; 
+            }
 
-            // Chờ delay theo số mảnh ghép nếu vừa rớt, nếu không là 20 giây mặc định
+            p.idleTimer += dt;
             const threshold = p.justDropped ? dropDelay : 20.0;
 
             if (p.driftState === 'idle') {
@@ -578,6 +654,7 @@ function _dJ(dt) {
                     p.driftState = 'done'; 
                     p.justDropped = false;
                     p.idleTimer = 0;
+                    p.tilt = 0;
                 } else {
                     p.x += (dx / dist) * step;
                     p.y += (dy / dist) * step;
@@ -586,35 +663,30 @@ function _dJ(dt) {
         });
     }
 
-    {
-        const pw = _jP.length ? _jP[0].w : 0, ph = _jP.length ? _jP[0].h : 0;
-        ctx.save();
-        ctx.globalAlpha = 0.05;
-        ctx.fillStyle = '#559bff';
-        ctx.fillRect(_jX, _jY, _jW, _jH);
-        ctx.globalAlpha = 0.09;
-        ctx.strokeStyle = 'rgba(85,155,255,0.5)';
-        ctx.lineWidth = 1; ctx.setLineDash([4, 7]);
-        for (let r = 0; r < _jR; r++) for (let c = 0; c < _jC; c++)
-            ctx.strokeRect(_jX + c * pw + 1, _jY + r * ph + 1, pw - 2, ph - 2);
-        ctx.setLineDash([]); ctx.restore();
-    }
-
     _jP.filter(p => !p.held).forEach(p => drawPiece(p));
     _jP.filter(p => p.held).forEach(p => drawPiece(p));
 
     if (_jS === 4 && _jCheckWin()) {
         _jS = 5;
-        _jP.forEach(p => {
-            p.x = p.tx; p.y = p.ty;
-            p.tgX = p.tx; p.tgY = p.ty;
-            p.held = false; p.driftState = 'done'; p.tilt = 0;
-        });
+        _jP.forEach(p => { p.held = false; p.driftState = 'done'; });
         _jD = null;
         spawnParticles(W / 2, H / 2, W * 0.6, H * 0.5, 70);
     }
+    
     if (_jS === 5) {
+        _jP.forEach(p => {
+            p.x += (p.tx - p.x) * 6 * dt;
+            p.y += (p.ty - p.y) * 6 * dt;
+            if (p.tilt !== undefined && Math.abs(p.tilt) > 0.001) {
+                p.tilt += (0 - p.tilt) * 6 * dt;
+            } else {
+                p.tilt = 0;
+            }
+        });
+        
         particles = particles.filter(p => { const ok = p.update(dt); if (ok) p.draw(); return ok; });
+        glowStars = glowStars.filter(s => { const ok = s.update(dt); if (ok) s.draw(); return ok; });
+        glowRings = glowRings.filter(r => { const ok = r.update(dt); if (ok) r.draw(); return ok; });
     }
 }
 
@@ -625,10 +697,10 @@ document.body.appendChild(_sI);
 
 function _jLaunchGame() {
     _sI.style.display='none';
-    state='_J'; _jS=1;
+    state='_J'; _jS=1; _jLevel=1;
     const f=document.createElement('input'); f.type='file'; f.accept='image/*';
     f.onchange=e=>{ const x=e.target.files[0]; if(!x){state='MENU';return;}
-        _jI.onload=_jInitPuzzle;
+        _jI.onload = () => _jInitPuzzle(false);
         _jI.src=URL.createObjectURL(x);
     };
     f.click();
@@ -636,9 +708,9 @@ function _jLaunchGame() {
 
 function _jLaunchPresetGame() {
     _sI.style.display='none';
-    state='_J'; _jS=1;
+    state='_J'; _jS=1; _jLevel=1;
     _jI.crossOrigin = "Anonymous"; 
-    _jI.onload = _jInitPuzzle;
+    _jI.onload = () => _jInitPuzzle(false);
     _jI.src = 'secret.jpg'; 
 }
 
@@ -1287,7 +1359,13 @@ function drawIntro(dt) {
 function frame(now) {
   updateRecordBtn();
   const dt=Math.min((now-lastTime)/1000,.05); lastTime=now; flashTimer+=dt; globalTimer+=dt;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a0d'; ctx.fillRect(0,0,W,H);
+  
+  if (state === '_J') {
+      ctx.fillStyle = '#e2e2e6'; // Nền xám trắng cho Mini Game
+  } else {
+      ctx.fillStyle = '#0a0a0d'; // Nền mặc định cho UI
+  }
+  ctx.fillRect(0,0,W,H);
 
   if (state==='INTRO') {
     drawIntro(dt);
@@ -1430,16 +1508,25 @@ canvas.addEventListener('click', e => { if (e.ctrlKey||e.metaKey) { handlePointe
 
 canvas.addEventListener('touchstart', e => { 
   e.preventDefault(); const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchMoved=false; mouseX=t.clientX; mouseY=t.clientY; 
-  if(state==='_J' && _jS===4) {
-      let mx=mouseX, my=mouseY;
-      for(let i=_jP.length-1; i>=0; i--) { 
-          let p=_jP[i];
-          if(mx>p.x && mx<p.x+p.w && my>p.y && my<p.y+p.h) { 
-              _jD=p; p.held=true; p.offX=mx-p.x; p.offY=my-p.y;
-              p.driftState='idle'; p.idleTimer=0; p.stateTimer=0;
-              _jP.splice(i,1); _jP.push(p);
-              break; 
-          } 
+  if(state==='_J') {
+      if (_jS === 5) {
+          _jLevel++;
+          _jInitPuzzle(true);
+          spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
+          spawnGlow(W / 2, H / 2, '#a55fff', 30, 8);
+          return;
+      }
+      if (_jS === 4) {
+          let mx=mouseX, my=mouseY;
+          for(let i=_jP.length-1; i>=0; i--) { 
+              let p=_jP[i];
+              if(mx>p.x && mx<p.x+p.w && my>p.y && my<p.y+p.h) { 
+                  _jD=p; p.held=true; p.offX=mx-p.x; p.offY=my-p.y;
+                  p.driftState='idle'; p.idleTimer=0; p.stateTimer=0;
+                  _jP.splice(i,1); _jP.push(p);
+                  break; 
+              } 
+          }
       }
   }
 },{passive:false});
@@ -1456,7 +1543,6 @@ canvas.addEventListener('touchend', e => {
   e.preventDefault(); mouseX=-100; mouseY=-100; 
   if(state==='_J' && _jD) { 
       _jD.held = false;
-      _jD.tgX = _jD.x; _jD.tgY = _jD.y; 
       _jD.driftState = 'idle'; _jD.idleTimer = 0; _jD.stateTimer = 0;
       _jD.justDropped = true; 
       _jD = null; return; 
@@ -1466,16 +1552,25 @@ canvas.addEventListener('touchend', e => {
 
 window.addEventListener('mousedown', e => {
     if(e.target!==canvas) return; isMouseDown=true;
-    if(state==='_J' && _jS===4) { 
-        let mx=e.clientX, my=e.clientY; 
-        for(let i=_jP.length-1; i>=0; i--) { 
-            let p=_jP[i]; 
-            if(mx>p.x && mx<p.x+p.w && my>p.y && my<p.y+p.h) { 
-                _jD=p; p.held=true; p.offX=mx-p.x; p.offY=my-p.y;
-                p.driftState='idle'; p.idleTimer=0; p.stateTimer=0;
-                _jP.splice(i,1); _jP.push(p);
-                break; 
-            } 
+    if(state==='_J') { 
+        if (_jS === 5) {
+            _jLevel++;
+            _jInitPuzzle(true); 
+            spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
+            spawnGlow(W / 2, H / 2, '#a55fff', 30, 8);
+            return;
+        }
+        if (_jS === 4) {
+            let mx=e.clientX, my=e.clientY; 
+            for(let i=_jP.length-1; i>=0; i--) { 
+                let p=_jP[i]; 
+                if(mx>p.x && mx<p.x+p.w && my>p.y && my<p.y+p.h) { 
+                    _jD=p; p.held=true; p.offX=mx-p.x; p.offY=my-p.y;
+                    p.driftState='idle'; p.idleTimer=0; p.stateTimer=0;
+                    _jP.splice(i,1); _jP.push(p);
+                    break; 
+                } 
+            }
         } 
     }
 });
@@ -1484,7 +1579,6 @@ window.addEventListener('mouseup', e => {
     isMouseDown=false; 
     if(state==='_J' && _jD) { 
         _jD.held = false;
-        _jD.tgX = _jD.x; _jD.tgY = _jD.y;
         _jD.driftState = 'idle'; _jD.idleTimer = 0; _jD.stateTimer = 0;
         _jD.justDropped = true; 
         _jD = null;
