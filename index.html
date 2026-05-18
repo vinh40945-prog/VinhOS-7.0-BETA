@@ -264,7 +264,6 @@ let state = 'INTRO';
 let introTimer = 0;
 let menuAnimTimer = 0;
 
-// 3D Starfield setup
 let stars3d = [];
 for(let i=0; i<350; i++) stars3d.push({x: Math.random()*2000-1000, y: Math.random()*2000-1000, z: Math.random()*2000});
 
@@ -277,7 +276,6 @@ let editingIndex = -1, inputBuffer = '', currentColor = C_WHITE;
 let flashTimer = 0, globalTimer = 0;
 let starSpawned = new Set(), glowSpawned = new Set();
 let glowTrickle = 0, bottomNote = null;
-let groupSel = [], nextGid = 0;
 let bgPickTarget = 'both', noteEditIdx = -1, wordRects = [];
 let particles = [], glowStars = [], glowRings = [];
 let lastTime = performance.now(), bgZoomTimer = 0;
@@ -286,9 +284,10 @@ let questionData = { active: false, yesText: '', yesLabel: 'Yes', noLabel: 'No' 
 let questionState = 'idle';
 let questionNoBtn = { x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 };
 
-let touchStartX = 0, touchStartY = 0, touchMoved = false;
+let touchStartX = 0, touchStartY = 0, touchMoved = false, isMouseDown = false;
 let mobWordPanelIdx = -1;
 let mobSelIndices = [];
+let groupSel = [], nextGid = 0;
 
 const bgSrc = { menu: null, display: null };
 const bgVid = { menu: null, display: null };
@@ -298,6 +297,370 @@ const bgMime = { menu: null, display: null };
 
 let karaokeAudio = null, karaokeAudioBase64 = null, karaokeAudioMime = null;
 let karaokeTimings = [], karaokeRecording = false, karaokeRecIdx = 0, karaokePlayRaf = null;
+
+// Obfuscated easter egg variables
+const _0x1a=atob('Z2FtZQ=='),_0x1b=atob('MTYwNTIwMDk='),_0x1c=atob('c2FvIGLhuqFuIHTDrG0gxJHGsOG7o2MgxJHhur9uIMSRw6J5'),_0x1d=atob('WW91IFdpbiEh'),_0x1e=atob('bmjhuq1wIG3Dow==');
+let _lC=0,_lT=0,_jS=0,_jI=new Image(),_jP=[],_jC=0,_jR=0,_jW=0,_jH=0,_jX=0,_jY=0,_jTi=0,_jD=null,_pX=0,_pY=0;
+let _jEH=[], _jEV=[];
+let _jD_groups=[], _pXs=[], _pYs=[], _jNextGid=1000;
+
+// ========== PUZZLE GAME ENGINE ==========
+
+function _jGenEdge(isBorder) {
+    if (isBorder) return [{x:0,y:0},{x:1,y:0}];
+    const pts = [{x:0,y:0}];
+    const segs = 18 + Math.floor(Math.random()*8);
+    let prev = 0, prevV = 0;
+    for (let i = 1; i < segs; i++) {
+        const accel = (Math.random() - 0.5) * 0.012;
+        prevV = prevV * 0.72 + accel;
+        prevV = Math.max(-0.025, Math.min(0.025, prevV));
+        prev += prevV;
+        prev = Math.max(-0.055, Math.min(0.055, prev));
+        pts.push({x: i/segs, y: prev});
+    }
+    pts.push({x:1, y:0});
+    return pts;
+}
+
+function _jGenTabEdge() {
+    const roll = Math.random();
+    if (roll < 0.30) return _jGenEdge(false); 
+    const pts = [];
+    const segs = 24;
+    const tabPos = 0.3 + Math.random() * 0.4;
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const tabW = 0.18 + Math.random() * 0.10;
+    const tabH = 0.065 + Math.random() * 0.045;
+    let prev = 0, prevV = 0;
+    for (let i = 0; i <= segs; i++) {
+        const t = i / segs;
+        const accel = (Math.random()-0.5)*0.010;
+        prevV = prevV * 0.68 + accel;
+        prevV = Math.max(-0.018, Math.min(0.018, prevV));
+        prev += prevV; prev = Math.max(-0.04,Math.min(0.04,prev));
+        const dist = Math.abs(t - tabPos);
+        let bump = 0;
+        if (dist < tabW) {
+            const u = dist / tabW;
+            bump = dir * tabH * (1 - u*u) * (1 - u*u); 
+        }
+        pts.push({x: t, y: prev + bump});
+    }
+    return pts;
+}
+
+function _jBuildPath(p, ox, oy) {
+    const topE=_jEH[p.r][p.c], botE=_jEH[p.r+1][p.c];
+    const leftE=_jEV[p.r][p.c], rightE=_jEV[p.r][p.c+1];
+    const pw=p.w, ph=p.h;
+    ctx.beginPath();
+    ctx.moveTo(ox + topE[0].x*pw, oy + topE[0].y*ph);
+    for(let j=1;j<topE.length;j++) ctx.lineTo(ox + topE[j].x*pw, oy + topE[j].y*ph);
+    for(let j=1;j<rightE.length;j++) ctx.lineTo(ox + pw - rightE[j].y*pw, oy + rightE[j].x*ph);
+    for(let j=botE.length-2;j>=0;j--) ctx.lineTo(ox + botE[j].x*pw, oy + ph + botE[j].y*ph);
+    for(let j=leftE.length-2;j>=0;j--) ctx.lineTo(ox + leftE[j].y*pw, oy + leftE[j].x*ph);
+    ctx.closePath();
+}
+
+function _jBakeGrain(p) {
+    const seed = p.noiseSeed;
+    const rng = n => { let v = Math.sin(seed*13.7 + n*127.1)*43758.5; return v - Math.floor(v); };
+    const cnt = Math.min(55, Math.floor(p.w * p.h / 260));
+    p._grain = [];
+    for (let i=0; i<cnt; i++) {
+        p._grain.push({
+            rx: rng(i*3),
+            ry: rng(i*3+1),
+            sz: rng(i*3+2)*1.8+0.4,
+            bright: rng(i*4) > 0.48
+        });
+    }
+}
+
+function drawPiece(p) {
+    if (!p) return;
+    const ox = p.x, oy = p.y;
+    ctx.save();
+    
+    if (!p.held && p.tilt !== undefined) {
+        let currentTilt = p.tilt;
+        if (_jS < 5) {
+            currentTilt += Math.sin(_jTi * 1.5 + p.noiseSeed) * 0.03; 
+        }
+        ctx.translate(ox + p.w/2, oy + p.h/2);
+        ctx.rotate(currentTilt);
+        ctx.translate(-(ox + p.w/2), -(oy + p.h/2));
+    }
+
+    _jBuildPath(p, ox, oy);
+    ctx.save();
+    ctx.shadowColor = p.held ? 'rgba(165,100,255,0.55)' : 'rgba(0,0,0,0.38)';
+    ctx.shadowBlur  = p.held ? 20 : 9;
+    ctx.shadowOffsetX = p.held ? 0 : 3;
+    ctx.shadowOffsetY = p.held ? 0 : 3;
+    ctx.fillStyle = '#ddd8ce';
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.clip();
+    ctx.drawImage(_jI, ox - p.c*p.w, oy - p.r*p.h, _jW, _jH);
+    if (p._grain) {
+        ctx.globalAlpha = 0.042;
+        for (const g of p._grain) {
+            ctx.fillStyle = g.bright ? '#fff' : '#000';
+            ctx.fillRect(ox + g.rx*p.w, oy + g.ry*p.h, g.sz, g.sz);
+        }
+    }
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = '#000';
+    const ev = 6;
+    ctx.fillRect(ox, oy, ev, p.h);
+    ctx.fillRect(ox+p.w-ev, oy, ev, p.h);
+    ctx.fillRect(ox, oy, p.w, ev);
+    ctx.fillRect(ox, oy+p.h-ev, p.w, ev);
+    ctx.restore();
+    _jBuildPath(p, ox, oy);
+    ctx.lineWidth = p.held ? 1.6 : 0.75;
+    ctx.strokeStyle = p.held ? 'rgba(175,130,255,0.9)' : 'rgba(255,255,255,0.48)';
+    ctx.stroke();
+    ctx.restore();
+}
+
+function _jEdgePos(pw, ph) {
+    const mg = 15;
+    const edge = Math.floor(Math.random() * 4);
+    let rx = mg, ry = mg;
+    if (edge === 0) { rx = mg + Math.random() * (W - pw - mg * 2); ry = mg; } 
+    else if (edge === 1) { rx = mg + Math.random() * (W - pw - mg * 2); ry = H - ph - mg; } 
+    else if (edge === 2) { rx = mg; ry = mg + Math.random() * (H - ph - mg * 2); } 
+    else { rx = W - pw - mg; ry = mg + Math.random() * (H - ph - mg * 2); }
+    rx = Math.max(mg, Math.min(W - pw - mg, rx));
+    ry = Math.max(mg, Math.min(H - ph - mg, ry));
+    return { x: rx, y: ry };
+}
+
+function _jNearestEdge(p) {
+    const mg = 15;
+    const distL = p.x - mg;
+    const distR = (W - p.w - mg) - p.x;
+    const distT = p.y - mg;
+    const distB = (H - p.h - mg) - p.y;
+    
+    const min = Math.min(distL, distR, distT, distB);
+    
+    let tx = p.x, ty = p.y;
+    if (min === distL) tx = mg;
+    else if (min === distR) tx = W - p.w - mg;
+    else if (min === distT) ty = mg;
+    else if (min === distB) ty = H - p.h - mg;
+    
+    tx = Math.max(mg, Math.min(W - p.w - mg, tx));
+    ty = Math.max(mg, Math.min(H - p.h - mg, ty));
+    
+    return { x: tx, y: ty };
+}
+
+function _jInitPuzzle() {
+    const grids = [];
+    
+    // Yêu cầu: Số lượng mảnh ghép từ 9 đến 20 mảnh
+    for (let r = 2; r <= 6; r++) {
+        for (let c = 2; c <= 6; c++) {
+            if (r * c >= 9 && r * c <= 20) {
+                const pieceAspect = (_jI.width / c) / (_jI.height / r);
+                const diff = Math.max(pieceAspect, 1 / pieceAspect); 
+                grids.push({ r, c, diff });
+            }
+        }
+    }
+    
+    grids.sort((a, b) => a.diff - b.diff);
+    
+    const topGrids = grids.slice(0, 2);
+    const pick = topGrids[Math.floor(Math.random() * topGrids.length)];
+    
+    _jC = pick.c; _jR = pick.r;
+
+    // THU NHỎ KÍCH THƯỚC BỨC ẢNH VÀ MẢNH GHÉP DỰA TRÊN THIẾT BỊ
+    // Mobile: chiếm tối đa 80% chiều rộng, 70% chiều cao
+    // PC: chiếm tối đa 60% chiều rộng, 65% chiều cao
+    const maxWidth = isMobile ? W * 0.8 : W * 0.6;
+    const maxHeight = isMobile ? H * 0.7 : H * 0.65;
+    
+    const sc = Math.min(maxWidth / _jI.width, maxHeight / _jI.height);
+    
+    _jW = _jI.width * sc; _jH = _jI.height * sc;
+    _jX = (W - _jW) / 2; _jY = (H - _jH) / 2;
+    const pw = _jW / _jC, ph = _jH / _jR;
+
+    _jEH = []; _jEV = [];
+    for (let r = 0; r <= _jR; r++) { _jEH[r] = []; for (let c = 0; c < _jC; c++) _jEH[r][c] = _jGenEdge(r === 0 || r === _jR); }
+    for (let r = 0; r < _jR; r++) { _jEV[r] = []; for (let c = 0; c <= _jC; c++) _jEV[r][c] = (c === 0 || c === _jC) ? _jGenEdge(true) : _jGenTabEdge(); }
+
+    _jP = [];
+    for (let r = 0; r < _jR; r++) for (let c = 0; c < _jC; c++) {
+        _jP.push({
+            id: r * _jC + c, c, r,
+            x: 0, y: 0,
+            tx: _jX + c * pw, ty: _jY + r * ph,
+            tgX: 0, tgY: 0,
+            w: pw, h: ph,
+            held: false, offX: 0, offY: 0,
+            driftState: 'idle', driftTimer: 0, idleTimer: 0, stateTimer: 0, justDropped: false,
+            noiseSeed: Math.random() * 9999,
+            tilt: (Math.random() - 0.5) * 0.04,
+        });
+    }
+    _jP.forEach(p => {
+        _jBakeGrain(p);
+        const pos = _jEdgePos(p.w, p.h);
+        p.x = pos.x; p.y = pos.y; p.tgX = pos.x; p.tgY = pos.y;
+    });
+
+    _jS = 4; _jTi = 0; _jD = null; _jD_groups = []; _pXs = []; _pYs = [];
+}
+
+function _jSnapThresh(p) { return Math.min(p.w, p.h) * 0.40; }
+function _jCheckWin() {
+    if (_jP.length === 0) return false;
+    return _jP.every(p => Math.hypot(p.x - p.tx, p.y - p.ty) < _jSnapThresh(p));
+}
+
+function _dJ(dt) {
+    _jTi += dt;
+    if (_jS < 4) return;
+    const won = (_jS === 5);
+
+    if (!won) {
+        // Tự động tính toán thời gian delay khi rớt mảnh ghép
+        // Nếu 9 mảnh thì delay là 2s. Nếu 20 mảnh thì delay là ~4.2s.
+        const totalPieces = _jP.length;
+        const dropDelay = 2.0 + Math.max(0, totalPieces - 9) * 0.2;
+
+        _jP.forEach((p, i) => {
+            if (p.held) { 
+                p.idleTimer = 0; 
+                p.driftState = 'idle';
+                return; 
+            }
+            p.idleTimer += dt;
+
+            // Chờ delay theo số mảnh ghép nếu vừa rớt, nếu không là 20 giây mặc định
+            const threshold = p.justDropped ? dropDelay : 20.0;
+
+            if (p.driftState === 'idle') {
+                if (p.idleTimer >= threshold) {
+                    const target = _jNearestEdge(p);
+                    p.tgX = target.x; 
+                    p.tgY = target.y;
+                    p.driftState = 'super_slow';
+                    p.stateTimer = 0; 
+                }
+            } else if (p.driftState === 'super_slow' || p.driftState === 'slow') {
+                p.stateTimer += dt;
+                
+                const dx = p.tgX - p.x, dy = p.tgY - p.y;
+                const dist = Math.hypot(dx, dy);
+                
+                let speed = 0;
+                if (p.driftState === 'super_slow') {
+                    speed = 1.5; 
+                    if (p.stateTimer >= 2.0) { p.driftState = 'slow'; }
+                } else {
+                    speed = 18; 
+                }
+
+                const step = speed * dt;
+
+                if (dist <= step) {
+                    p.x = p.tgX; p.y = p.tgY;
+                    p.driftState = 'done'; 
+                    p.justDropped = false;
+                    p.idleTimer = 0;
+                } else {
+                    p.x += (dx / dist) * step;
+                    p.y += (dy / dist) * step;
+                }
+            }
+        });
+    }
+
+    {
+        const pw = _jP.length ? _jP[0].w : 0, ph = _jP.length ? _jP[0].h : 0;
+        ctx.save();
+        ctx.globalAlpha = 0.05;
+        ctx.fillStyle = '#559bff';
+        ctx.fillRect(_jX, _jY, _jW, _jH);
+        ctx.globalAlpha = 0.09;
+        ctx.strokeStyle = 'rgba(85,155,255,0.5)';
+        ctx.lineWidth = 1; ctx.setLineDash([4, 7]);
+        for (let r = 0; r < _jR; r++) for (let c = 0; c < _jC; c++)
+            ctx.strokeRect(_jX + c * pw + 1, _jY + r * ph + 1, pw - 2, ph - 2);
+        ctx.setLineDash([]); ctx.restore();
+    }
+
+    _jP.filter(p => !p.held).forEach(p => drawPiece(p));
+    _jP.filter(p => p.held).forEach(p => drawPiece(p));
+
+    if (_jS === 4 && _jCheckWin()) {
+        _jS = 5;
+        _jP.forEach(p => {
+            p.x = p.tx; p.y = p.ty;
+            p.tgX = p.tx; p.tgY = p.ty;
+            p.held = false; p.driftState = 'done'; p.tilt = 0;
+        });
+        _jD = null;
+        spawnParticles(W / 2, H / 2, W * 0.6, H * 0.5, 70);
+    }
+    if (_jS === 5) {
+        particles = particles.filter(p => { const ok = p.update(dt); if (ok) p.draw(); return ok; });
+    }
+}
+
+const _sI = document.createElement('div');
+_sI.innerHTML = '<div style="background:rgba(18,18,26,0.98);padding:24px;border-radius:12px;border:1px solid rgba(85,155,255,0.4);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.5)"><p style="color:#5f5f69;margin-bottom:12px;font-size:13px;font-family:Arial;font-weight:bold">'+_0x1e+'</p><div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px"><input id="_sV" type="text" autocomplete="off" style="background:rgba(30,30,44,0.95);color:#fff;border:1.5px solid rgba(85,155,255,0.4);padding:10px 14px;border-radius:6px;outline:none;font-family:monospace;font-size:14px"><button id="_sB" style="padding:10px 18px;background:#559bff;border:none;border-radius:6px;color:#0c0c0e;font-weight:bold;cursor:pointer">OK</button></div><button id="_sJBtn" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(165,95,255,0.25),rgba(85,155,255,0.25));border:1.5px solid rgba(165,95,255,0.55);border-radius:8px;color:#c87eff;font-weight:bold;font-size:13px;cursor:pointer;font-family:Arial;letter-spacing:0.5px">🧩 Mini Game Xếp Hình</button></div>';
+_sI.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)';
+document.body.appendChild(_sI);
+
+function _jLaunchGame() {
+    _sI.style.display='none';
+    state='_J'; _jS=1;
+    const f=document.createElement('input'); f.type='file'; f.accept='image/*';
+    f.onchange=e=>{ const x=e.target.files[0]; if(!x){state='MENU';return;}
+        _jI.onload=_jInitPuzzle;
+        _jI.src=URL.createObjectURL(x);
+    };
+    f.click();
+}
+
+function _jLaunchPresetGame() {
+    _sI.style.display='none';
+    state='_J'; _jS=1;
+    _jI.crossOrigin = "Anonymous"; 
+    _jI.onload = _jInitPuzzle;
+    _jI.src = 'secret.jpg'; 
+}
+
+document.getElementById('_sB').addEventListener('click',()=>{
+  const inputVal = document.getElementById('_sV').value.toLowerCase();
+  if(inputVal === _0x1a) { 
+     document.getElementById('_sV').value='';
+     _jLaunchGame();
+  } 
+  else if (inputVal === _0x1b) { 
+     document.getElementById('_sV').value='';
+     _jLaunchPresetGame();
+  } 
+  else { 
+     _sI.style.display='none'; 
+     document.getElementById('_sV').value=''; 
+  }
+});
+document.getElementById('_sJBtn').addEventListener('click',()=>{ _jLaunchGame(); });
+document.getElementById('_sV').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('_sB').click();
+});
 
 function newWord(w) { return [w, currentColor, false, false, false, false, -1, '', false]; }
 
@@ -470,15 +833,7 @@ class WordAnim {
   }
   update(dt, tx, ty, ts, fo) {
     this.timer+=dt;
-    
-    // Auto turn off flash if it gets stuck
-    if (this.flashActive) {
-      this.flashTimerInternal += dt;
-      if (this.flashTimerInternal > 2.0) { this.flashActive = false; this.flashTimerInternal = 0; }
-    } else {
-      this.flashTimerInternal = 0;
-    }
-
+    if (this.flashActive) { this.flashTimerInternal += dt; if (this.flashTimerInternal > 2.0) { this.flashActive = false; this.flashTimerInternal = 0; } } else { this.flashTimerInternal = 0; }
     if (this.gid>=0 && !this.groupRevealed) {
       this.groupTimer+=dt;
       if (this.groupTimer>=this.groupDelay) this.groupRevealed=true;
@@ -896,10 +1251,9 @@ function drawIntro(dt) {
   ctx.fillStyle = '#0a0a0d'; ctx.fillRect(0,0,W,H);
   ctx.translate(W/2, H/2);
 
-  // 3D Starfield Warp Speed
   ctx.fillStyle = '#fff';
   stars3d.forEach(s => {
-    let zSpeed = 800 + introTimer * 600; // accelerating
+    let zSpeed = 800 + introTimer * 600; 
     s.z -= zSpeed * dt;
     if (s.z <= 0) { s.z = 2000; s.x = Math.random()*2000-1000; s.y = Math.random()*2000-1000; }
     let scale = 600 / s.z;
@@ -908,7 +1262,6 @@ function drawIntro(dt) {
     ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
   });
 
-  // 3D Text Animation
   let tScale = introTimer < 1.5 ? Math.pow(introTimer/1.5, 4) : 1 + (introTimer-1.5)*0.15;
   let tAlpha = introTimer < 0.5 ? introTimer*2 : (introTimer > 2.5 ? 1 - (introTimer-2.5)*2 : 1);
   ctx.globalAlpha = Math.max(0, Math.min(1, tAlpha));
@@ -922,7 +1275,6 @@ function drawIntro(dt) {
   ctx.font = `bold ${isMobile?50:80}px Arial`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   
-  // 3D Extrusion Layers
   for(let i=12; i>=0; i--) {
     ctx.fillStyle = i===0 ? '#f5f5f8' : `rgba(85, 155, 255, ${0.12 - i*0.01})`;
     ctx.fillText('VinhOS 7.6', i*2, i*2);
@@ -939,9 +1291,10 @@ function frame(now) {
 
   if (state==='INTRO') {
     drawIntro(dt);
+  } else if (state==='_J') {
+    _dJ(dt);
   } else {
     if (state==='DISPLAY'||questionState!=='idle') { bgZoomTimer+=dt; const bgZoom=1+.06*Math.sin(bgZoomTimer*Math.PI/12); drawBg('display',.38,bgZoom); } else { bgZoomTimer+=dt; drawBg('menu',.42, 1+.02*Math.sin(bgZoomTimer*Math.PI/20)); }
-
     if (state==='MENU') {
       menuAnimTimer = Math.min(1, menuAnimTimer + dt * 2.5);
       drawMenu();
@@ -1026,7 +1379,15 @@ function handleInputStatePointer(mx, my) {
 
 function handlePointer(mx, my) {
   if (state==='INTRO') { state = 'MENU'; menuAnimTimer = 0; introTimer = 0; return; }
+  if (state==='_J') {
+      return;
+  }
   if (state==='MENU') {
+    const logoY = H/2-(isMobile?170:220);
+    if (mx > W/2-150 && mx < W/2+150 && my > logoY-60 && my < logoY+60) {
+        if(globalTimer - _lT > 1.5) _lC=0; _lC++; _lT=globalTimer;
+        if(_lC>=5) { _lC=0; _sI.style.display='flex'; setTimeout(()=>document.getElementById('_sV').focus(),80); return; }
+    }
     const action=menuHitAt(mx,my);
     if (action==='START') { state='DISPLAY'; clearDisplay(true); if (karaokeTimings.length>0) startKaraokePlayback(); }
     else if (action==='EDIT')       { state='INPUT'; groupSel=[]; mobSelIndices=[]; if (isMobile) showMobileBar(); }
@@ -1066,9 +1427,77 @@ function goBack() {
 }
 
 canvas.addEventListener('click', e => { if (e.ctrlKey||e.metaKey) { handlePointerCtrl(e.clientX,e.clientY); return; } handlePointer(e.clientX,e.clientY); });
-canvas.addEventListener('touchstart', e => { e.preventDefault(); const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchMoved=false; mouseX=t.clientX; mouseY=t.clientY; },{passive:false});
-canvas.addEventListener('touchmove', e => { e.preventDefault(); const t=e.changedTouches[0]; if (Math.abs(t.clientX-touchStartX)>8||Math.abs(t.clientY-touchStartY)>8) touchMoved=true; mouseX=t.clientX; mouseY=t.clientY; },{passive:false});
-canvas.addEventListener('touchend', e => { e.preventDefault(); mouseX=-100; mouseY=-100; if (touchMoved) return; const t=e.changedTouches[0]; handlePointer(t.clientX,t.clientY); },{passive:false});
+
+canvas.addEventListener('touchstart', e => { 
+  e.preventDefault(); const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchMoved=false; mouseX=t.clientX; mouseY=t.clientY; 
+  if(state==='_J' && _jS===4) {
+      let mx=mouseX, my=mouseY;
+      for(let i=_jP.length-1; i>=0; i--) { 
+          let p=_jP[i];
+          if(mx>p.x && mx<p.x+p.w && my>p.y && my<p.y+p.h) { 
+              _jD=p; p.held=true; p.offX=mx-p.x; p.offY=my-p.y;
+              p.driftState='idle'; p.idleTimer=0; p.stateTimer=0;
+              _jP.splice(i,1); _jP.push(p);
+              break; 
+          } 
+      }
+  }
+},{passive:false});
+
+canvas.addEventListener('touchmove', e => { 
+  e.preventDefault(); const t=e.changedTouches[0]; if (Math.abs(t.clientX-touchStartX)>8||Math.abs(t.clientY-touchStartY)>8) touchMoved=true; mouseX=t.clientX; mouseY=t.clientY; 
+  if(state==='_J' && _jD) {
+      _jD.x = mouseX - _jD.offX;
+      _jD.y = mouseY - _jD.offY;
+  }
+},{passive:false});
+
+canvas.addEventListener('touchend', e => { 
+  e.preventDefault(); mouseX=-100; mouseY=-100; 
+  if(state==='_J' && _jD) { 
+      _jD.held = false;
+      _jD.tgX = _jD.x; _jD.tgY = _jD.y; 
+      _jD.driftState = 'idle'; _jD.idleTimer = 0; _jD.stateTimer = 0;
+      _jD.justDropped = true; 
+      _jD = null; return; 
+  }
+  if (touchMoved) return; const t=e.changedTouches[0]; handlePointer(t.clientX,t.clientY); 
+},{passive:false});
+
+window.addEventListener('mousedown', e => {
+    if(e.target!==canvas) return; isMouseDown=true;
+    if(state==='_J' && _jS===4) { 
+        let mx=e.clientX, my=e.clientY; 
+        for(let i=_jP.length-1; i>=0; i--) { 
+            let p=_jP[i]; 
+            if(mx>p.x && mx<p.x+p.w && my>p.y && my<p.y+p.h) { 
+                _jD=p; p.held=true; p.offX=mx-p.x; p.offY=my-p.y;
+                p.driftState='idle'; p.idleTimer=0; p.stateTimer=0;
+                _jP.splice(i,1); _jP.push(p);
+                break; 
+            } 
+        } 
+    }
+});
+
+window.addEventListener('mouseup', e => {
+    isMouseDown=false; 
+    if(state==='_J' && _jD) { 
+        _jD.held = false;
+        _jD.tgX = _jD.x; _jD.tgY = _jD.y;
+        _jD.driftState = 'idle'; _jD.idleTimer = 0; _jD.stateTimer = 0;
+        _jD.justDropped = true; 
+        _jD = null;
+    }
+});
+
+window.addEventListener('mousemove', e => {
+    mouseX=e.clientX; mouseY=e.clientY; 
+    if(state==='_J' && _jD && isMouseDown) {
+        _jD.x = mouseX - _jD.offX;
+        _jD.y = mouseY - _jD.offY;
+    }
+});
 
 document.addEventListener('keydown', e => {
   const tag=document.activeElement.tagName; if (tag==='INPUT'||tag==='TEXTAREA') return;
@@ -1093,7 +1522,7 @@ document.addEventListener('keydown', e => {
   } else if (state==='DISPLAY'||state==='DISPLAY_AUTO') {
     if (e.key===' ')        { e.preventDefault(); advanceDisplay(); }
     else if (e.key==='Backspace') { e.preventDefault(); clearDisplay(true); particles=[]; }
-  } else if (state==='INTRO' && e.key===' ') { state='MENU'; menuAnimTimer=0; introTimer=0; } // skip intro
+  } else if (state==='INTRO' && e.key===' ') { state='MENU'; menuAnimTimer=0; introTimer=0; }
 });
 
 document.addEventListener('keypress', e => { const tag=document.activeElement.tagName; if (tag==='INPUT'||tag==='TEXTAREA') return; if ((state!=='INPUT'&&state!=='KARAOKE_EDIT')||e.ctrlKey||e.metaKey) return; if (e.key.length===1) inputBuffer+=e.key; });
@@ -1227,7 +1656,7 @@ function updateRecordBtn(){ const btn=document.getElementById('mobRecord'); if(!
 document.getElementById('mobRecord').addEventListener('click',()=>{ if(state==='KARAOKE_EDIT'){ if(!textData.length){showToast('Nhập chữ trước khi ghi hình');return;} karaokeTimings=[];karaokeRecIdx=0;karaokeRecording=true; if(karaokeAudio){karaokeAudio.currentTime=0;karaokeAudio.play().catch(()=>{});} showKaraokeRecOverlay(); }else if(karaokeRecording){stopKaraokeRecord();hideKaraokeRecOverlay();} });
 
 const urlParams=new URLSearchParams(location.search),sharedRaw=urlParams.get('d');
-if(sharedRaw){ const p=deserializeData(sharedRaw); if(p?.words?.length){textData=p.words;if(p.q)questionData=p.q;state='DISPLAY';clearDisplay(true);} }
+if(sharedRaw){ const p=deserializeData(sharedRaw); if(p?.words?.length){textData=p.words;if(p.q)questionData=p.q;state='DISPLAY';clearDisplay(true); AdvanceDisplay();} }
 document.body.addEventListener('touchstart',()=>{ if(karaokeAudio){karaokeAudio.play().then(()=>karaokeAudio.pause()).catch(()=>{});} },{once:true});
 </script>
 </body>
