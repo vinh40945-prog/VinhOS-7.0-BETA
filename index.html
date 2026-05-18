@@ -237,13 +237,26 @@ button:active{transform:scale(0.95); filter:brightness(0.82)}
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W = window.innerWidth, H = window.innerHeight;
-canvas.width = W; canvas.height = H;
+let dpr = window.devicePixelRatio || 1;
+let lastHash = null;
+
+function resizeCanvas() {
+    W = window.innerWidth; H = window.innerHeight;
+    dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; 
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; 
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+    lastHash = null;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.matchMedia('(pointer:coarse)').matches && W < 1100);
 
 let mouseX = -100, mouseY = -100;
 window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; lastHash = null; });
 
 const LERP = 10.5, FLASH_SPD = 19, NEN = 0.89;
 const C_WHITE = '#f5f5f8', C_DIM = '#5f5f69', C_ACC = '#559bff';
@@ -269,7 +282,7 @@ for(let i=0; i<350; i++) stars3d.push({x: Math.random()*2000-1000, y: Math.rando
 
 let textData = [];
 let wordIndex = 0, startIdx = 0;
-let activeAnims = [], lastHash = null;
+let activeAnims = [];
 let cSize = 20, cData = [], groupCounters = {};
 let isCleared = true;
 let editingIndex = -1, inputBuffer = '', currentColor = C_WHITE;
@@ -303,6 +316,7 @@ const _0x1a=atob('Z2FtZQ=='),_0x1b=atob('MTYwNTIwMDk='),_0x1c=atob('c2FvIGLhuqFu
 let _lC=0,_lT=0,_jS=0,_jI=new Image(),_jP=[],_jC=0,_jR=0,_jW=0,_jH=0,_jX=0,_jY=0,_jTi=0,_jD=null,_pX=0,_pY=0,_jLevel=1;
 let _jEH=[], _jEV=[];
 let _jD_groups=[], _pXs=[], _pYs=[], _jNextGid=1000;
+let _jWinClickTimer = null, _jWinClickCount = 0;
 
 // ========== PUZZLE GAME ENGINE ==========
 
@@ -350,17 +364,17 @@ function _jGenTabEdge() {
     return pts;
 }
 
-function _jBuildPath(p, ox, oy) {
+function _jBuildPath(p, ox, oy, targetCtx = ctx) {
     const topE=_jEH[p.r][p.c], botE=_jEH[p.r+1][p.c];
     const leftE=_jEV[p.r][p.c], rightE=_jEV[p.r][p.c+1];
     const pw=p.w, ph=p.h;
-    ctx.beginPath();
-    ctx.moveTo(ox + topE[0].x*pw, oy + topE[0].y*ph);
-    for(let j=1;j<topE.length;j++) ctx.lineTo(ox + topE[j].x*pw, oy + topE[j].y*ph);
-    for(let j=1;j<rightE.length;j++) ctx.lineTo(ox + pw - rightE[j].y*pw, oy + rightE[j].x*ph);
-    for(let j=botE.length-2;j>=0;j--) ctx.lineTo(ox + botE[j].x*pw, oy + ph + botE[j].y*ph);
-    for(let j=leftE.length-2;j>=0;j--) ctx.lineTo(ox + leftE[j].y*pw, oy + leftE[j].x*ph);
-    ctx.closePath();
+    targetCtx.beginPath();
+    targetCtx.moveTo(ox + topE[0].x*pw, oy + topE[0].y*ph);
+    for(let j=1;j<topE.length;j++) targetCtx.lineTo(ox + topE[j].x*pw, oy + topE[j].y*ph);
+    for(let j=1;j<rightE.length;j++) targetCtx.lineTo(ox + pw - rightE[j].y*pw, oy + rightE[j].x*ph);
+    for(let j=botE.length-2;j>=0;j--) targetCtx.lineTo(ox + botE[j].x*pw, oy + ph + botE[j].y*ph);
+    for(let j=leftE.length-2;j>=0;j--) targetCtx.lineTo(ox + leftE[j].y*pw, oy + leftE[j].x*ph);
+    targetCtx.closePath();
 }
 
 function _jBakeGrain(p) {
@@ -379,71 +393,39 @@ function _jBakeGrain(p) {
 }
 
 function drawPiece(p) {
-    if (!p) return;
+    if (!p || !p.cachedImg) return;
     const ox = p.x, oy = p.y;
     ctx.save();
     
+    let currentTilt = 0;
     if (!p.held && p.tilt !== undefined && _jS < 5) {
-        let currentTilt = p.tilt;
-        currentTilt += Math.sin(_jTi * 1.5 + p.noiseSeed) * 0.03; 
+        currentTilt = p.tilt + Math.sin(_jTi * 1.5 + p.noiseSeed) * 0.03; 
+    } else if (_jS === 5 && p.tilt !== undefined) {
+        currentTilt = p.tilt;
+    }
+
+    if (currentTilt !== 0) {
         ctx.translate(ox + p.w/2, oy + p.h/2);
         ctx.rotate(currentTilt);
         ctx.translate(-(ox + p.w/2), -(oy + p.h/2));
-    } else if (_jS === 5 && p.tilt !== undefined) {
-        ctx.translate(ox + p.w/2, oy + p.h/2);
-        ctx.rotate(p.tilt);
-        ctx.translate(-(ox + p.w/2), -(oy + p.h/2));
     }
 
-    _jBuildPath(p, ox, oy);
-    ctx.save();
-    ctx.shadowColor = p.held ? 'rgba(165,100,255,0.55)' : 'rgba(0,0,0,0.38)';
-    ctx.shadowBlur  = p.held ? 20 : 9;
+    ctx.shadowColor = p.held ? 'rgba(165,100,255,0.6)' : 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur  = p.held ? 20 : 8;
     ctx.shadowOffsetX = p.held ? 0 : 3;
     ctx.shadowOffsetY = p.held ? 0 : 3;
-    ctx.fillStyle = '#ddd8ce';
-    ctx.fill();
-    ctx.restore();
-    ctx.save();
-    ctx.clip();
-    ctx.drawImage(_jI, ox - p.c*p.w, oy - p.r*p.h, _jW, _jH);
-    if (p._grain) {
-        ctx.globalAlpha = 0.042;
-        for (const g of p._grain) {
-            ctx.fillStyle = g.bright ? '#fff' : '#000';
-            ctx.fillRect(ox + g.rx*p.w, oy + g.ry*p.h, g.sz, g.sz);
-        }
-    }
-    if (_jS < 5 || p.held) {
-        ctx.globalAlpha = 0.16;
-        ctx.fillStyle = '#000';
-        const ev = 6;
-        ctx.fillRect(ox, oy, ev, p.h);
-        ctx.fillRect(ox+p.w-ev, oy, ev, p.h);
-        ctx.fillRect(ox, oy, p.w, ev);
-        ctx.fillRect(ox, oy+p.h-ev, p.w, ev);
-        ctx.restore();
+    
+    ctx.drawImage(p.cachedImg, ox - p.pad, oy - p.pad, p.w + p.pad * 2, p.h + p.pad * 2);
+    
+    if (p.held) {
+        ctx.shadowColor = 'transparent'; 
         _jBuildPath(p, ox, oy);
-        ctx.lineWidth = p.held ? 1.6 : 0.75;
-        ctx.strokeStyle = p.held ? 'rgba(175,130,255,0.9)' : 'rgba(255,255,255,0.48)';
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(175,130,255,0.9)';
         ctx.stroke();
-    } else {
-        ctx.restore();
     }
-    ctx.restore();
-}
 
-function _jEdgePos(pw, ph) {
-    const mg = 15;
-    const edge = Math.floor(Math.random() * 4);
-    let rx = mg, ry = mg;
-    if (edge === 0) { rx = mg + Math.random() * (W - pw - mg * 2); ry = mg; } 
-    else if (edge === 1) { rx = mg + Math.random() * (W - pw - mg * 2); ry = H - ph - mg; } 
-    else if (edge === 2) { rx = mg; ry = mg + Math.random() * (H - ph - mg * 2); } 
-    else { rx = W - pw - mg; ry = mg + Math.random() * (H - ph - mg * 2); }
-    rx = Math.max(mg, Math.min(W - pw - mg, rx));
-    ry = Math.max(mg, Math.min(H - ph - mg, ry));
-    return { x: rx, y: ry };
+    ctx.restore();
 }
 
 function _jNearestEdge(p) {
@@ -468,21 +450,12 @@ function _jNearestEdge(p) {
 }
 
 function _jInitPuzzle(isExploding = false) {
-    let minN, maxN;
-    
-    if (_jLevel === 1) {
-        minN = 4; maxN = 9; // 100% dễ
-    } else if (_jLevel === 2) {
-        minN = 10; maxN = 16;
-    } else if (_jLevel === 3) {
-        minN = 16; maxN = 25;
-    } else {
-        minN = 25; maxN = 40;
-    }
+    let minN = Math.floor(4 + (_jLevel - 1) * 2.0);
+    let maxN = Math.floor(6 + (_jLevel - 1) * 3.5);
 
     const grids = [];
-    for (let r = 2; r <= 7; r++) {
-        for (let c = 2; c <= 7; c++) {
+    for (let r = 2; r <= 8; r++) {
+        for (let c = 2; c <= 8; c++) {
             const n = r * c;
             if (n >= minN && n <= maxN) {
                 const pieceAspect = (_jI.width / c) / (_jI.height / r);
@@ -543,11 +516,10 @@ function _jInitPuzzle(isExploding = false) {
 
     for (let r = 0; r < _jR; r++) for (let c = 0; c < _jC; c++) {
         const i = r * _jC + c;
-        
         const startX = isExploding ? (_jX + c * pw) : edgePoints[i].x;
         const startY = isExploding ? (_jY + r * ph) : edgePoints[i].y;
-
-        _jP.push({
+        
+        const p = {
             id: i, c, r,
             x: startX, y: startY,
             tx: _jX + c * pw, ty: _jY + r * ph,
@@ -557,11 +529,53 @@ function _jInitPuzzle(isExploding = false) {
             driftState: isExploding ? 'exploding' : 'idle', 
             driftTimer: 0, idleTimer: 0, stateTimer: 0, justDropped: false,
             noiseSeed: Math.random() * 9999,
-            tilt: 0, // Không giữ lỗi nghiêng nữa
+            tilt: 0, 
             exRot: isExploding ? (Math.random() - 0.5) * 12 : 0, 
-        });
+        };
+        
+        _jBakeGrain(p);
+        
+        const pad = Math.ceil(Math.max(p.w, p.h) * 0.3);
+        p.pad = pad;
+        const cCanvas = document.createElement('canvas');
+        cCanvas.width = Math.ceil((p.w + pad * 2) * dpr);
+        cCanvas.height = Math.ceil((p.h + pad * 2) * dpr);
+        const xctx = cCanvas.getContext('2d');
+        xctx.scale(dpr, dpr);
+        
+        xctx.translate(pad, pad);
+        _jBuildPath(p, 0, 0, xctx);
+        xctx.fillStyle = '#ddd8ce';
+        xctx.fill();
+        
+        xctx.save();
+        xctx.clip();
+        xctx.drawImage(_jI, -p.c*p.w, -p.r*p.h, _jW, _jH);
+        
+        if (p._grain) {
+            xctx.globalAlpha = 0.042;
+            for (const g of p._grain) {
+                xctx.fillStyle = g.bright ? '#fff' : '#000';
+                xctx.fillRect(g.rx*p.w, g.ry*p.h, g.sz, g.sz);
+            }
+        }
+        xctx.globalAlpha = 0.16;
+        xctx.fillStyle = '#000';
+        const ev = 6;
+        xctx.fillRect(0, 0, ev, p.h);
+        xctx.fillRect(p.w-ev, 0, ev, p.h);
+        xctx.fillRect(0, 0, p.w, ev);
+        xctx.fillRect(0, p.h-ev, p.w, ev);
+        xctx.restore();
+        
+        _jBuildPath(p, 0, 0, xctx);
+        xctx.lineWidth = 0.75;
+        xctx.strokeStyle = 'rgba(255,255,255,0.48)';
+        xctx.stroke();
+        
+        p.cachedImg = cCanvas;
+        _jP.push(p);
     }
-    _jP.forEach(p => _jBakeGrain(p));
 
     _jS = 4; _jTi = 0; _jD = null; _jD_groups = []; _pXs = []; _pYs = [];
 }
@@ -688,6 +702,29 @@ function _dJ(dt) {
         glowStars = glowStars.filter(s => { const ok = s.update(dt); if (ok) s.draw(); return ok; });
         glowRings = glowRings.filter(r => { const ok = r.update(dt); if (ok) r.draw(); return ok; });
     }
+}
+
+// Xử lý Double Click và Triple Click
+function _jHandleWinClick() {
+    _jWinClickCount++;
+    clearTimeout(_jWinClickTimer);
+    
+    _jWinClickTimer = setTimeout(() => {
+        if (_jWinClickCount === 2) {
+            // Nhấp đúp: Qua màn mới (Tăng độ khó)
+            _jLevel++;
+            _jInitPuzzle(true);
+            spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
+            spawnGlow(W / 2, H / 2, '#a55fff', 30, 8);
+        } else if (_jWinClickCount >= 3) {
+            // Nhấp 3 lần: Chơi lại màn cũ (Cùng độ khó)
+            _jInitPuzzle(true); 
+            spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
+            spawnGlow(W / 2, H / 2, '#559bff', 30, 8); 
+        }
+        // Nếu nhấp 1 lần thì sẽ không làm gì, để tránh người chơi bấm nhầm
+        _jWinClickCount = 0;
+    }, 400); // 400ms để kịp bắt nhịp click liên tiếp
 }
 
 const _sI = document.createElement('div');
@@ -1361,9 +1398,9 @@ function frame(now) {
   const dt=Math.min((now-lastTime)/1000,.05); lastTime=now; flashTimer+=dt; globalTimer+=dt;
   
   if (state === '_J') {
-      ctx.fillStyle = '#e2e2e6'; // Nền xám trắng cho Mini Game
+      ctx.fillStyle = '#e2e2e6'; 
   } else {
-      ctx.fillStyle = '#0a0a0d'; // Nền mặc định cho UI
+      ctx.fillStyle = '#0a0a0d'; 
   }
   ctx.fillRect(0,0,W,H);
 
@@ -1510,10 +1547,7 @@ canvas.addEventListener('touchstart', e => {
   e.preventDefault(); const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchMoved=false; mouseX=t.clientX; mouseY=t.clientY; 
   if(state==='_J') {
       if (_jS === 5) {
-          _jLevel++;
-          _jInitPuzzle(true);
-          spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
-          spawnGlow(W / 2, H / 2, '#a55fff', 30, 8);
+          _jHandleWinClick();
           return;
       }
       if (_jS === 4) {
@@ -1554,10 +1588,7 @@ window.addEventListener('mousedown', e => {
     if(e.target!==canvas) return; isMouseDown=true;
     if(state==='_J') { 
         if (_jS === 5) {
-            _jLevel++;
-            _jInitPuzzle(true); 
-            spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
-            spawnGlow(W / 2, H / 2, '#a55fff', 30, 8);
+            _jHandleWinClick();
             return;
         }
         if (_jS === 4) {
@@ -1750,7 +1781,7 @@ function updateRecordBtn(){ const btn=document.getElementById('mobRecord'); if(!
 document.getElementById('mobRecord').addEventListener('click',()=>{ if(state==='KARAOKE_EDIT'){ if(!textData.length){showToast('Nhập chữ trước khi ghi hình');return;} karaokeTimings=[];karaokeRecIdx=0;karaokeRecording=true; if(karaokeAudio){karaokeAudio.currentTime=0;karaokeAudio.play().catch(()=>{});} showKaraokeRecOverlay(); }else if(karaokeRecording){stopKaraokeRecord();hideKaraokeRecOverlay();} });
 
 const urlParams=new URLSearchParams(location.search),sharedRaw=urlParams.get('d');
-if(sharedRaw){ const p=deserializeData(sharedRaw); if(p?.words?.length){textData=p.words;if(p.q)questionData=p.q;state='DISPLAY';clearDisplay(true); AdvanceDisplay();} }
+if(sharedRaw){ const p=deserializeData(sharedRaw); if(p?.words?.length){textData=p.words;if(p.q)questionData=p.q;state='DISPLAY';clearDisplay(true); advanceDisplay();} }
 document.body.addEventListener('touchstart',()=>{ if(karaokeAudio){karaokeAudio.play().then(()=>karaokeAudio.pause()).catch(()=>{});} },{once:true});
 </script>
 </body>
