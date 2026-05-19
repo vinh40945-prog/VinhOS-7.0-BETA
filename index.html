@@ -303,8 +303,8 @@ const _0x1a=atob('Z2FtZQ=='),_0x1b=atob('MTYwNTIwMDk='),_0x1c=atob('c2FvIGLhuqFu
 let _lC=0,_lT=0,_jS=0,_jI=new Image(),_jP=[],_jC=0,_jR=0,_jW=0,_jH=0,_jX=0,_jY=0,_jTi=0,_jD=null,_pX=0,_pY=0,_jLevel=1;
 let _jEH=[], _jEV=[];
 let _jD_groups=[], _pXs=[], _pYs=[], _jNextGid=1000;
-let _jWinClickTimer = null, _jWinClickCount = 0;
-let _jLastTouch = 0;
+let _jWinClickTimer = null, _jWinClickCount = 0, _lastWinClickTime = 0;
+let _isTouchActive = false;
 
 function _jGenEdge(isBorder) {
     if (isBorder) return [{x:0,y:0},{x:1,y:0}];
@@ -436,12 +436,29 @@ function _jNearestEdge(p) {
 }
 
 function _jInitPuzzle(isExploding = false) {
-    let minN = Math.floor(4 + (_jLevel - 1) * 2.0);
-    let maxN = Math.floor(6 + (_jLevel - 1) * 3.5);
+    let isTroll = Math.random() < 0.20; 
+    let minN, maxN;
+    
+    if (isTroll) {
+        minN = 30; maxN = 50;
+    } else {
+        if (_jLevel === 1) {
+            minN = 4; maxN = 9;
+        } else if (_jLevel === 2) {
+            minN = 10; maxN = 16;
+        } else if (_jLevel === 3) {
+            minN = 16; maxN = 25;
+        } else {
+            minN = 25; maxN = 40;
+        }
+    }
+
+    let levelMaxWait = isTroll ? 15 : (_jLevel * 5);
+    if (levelMaxWait > 30) levelMaxWait = 30;
 
     const grids = [];
-    for (let r = 2; r <= 8; r++) {
-        for (let c = 2; c <= 8; c++) {
+    for (let r = 2; r <= 10; r++) {
+        for (let c = 2; c <= 10; c++) {
             const n = r * c;
             if (n >= minN && n <= maxN) {
                 const pieceAspect = (_jI.width / c) / (_jI.height / r);
@@ -505,6 +522,9 @@ function _jInitPuzzle(isExploding = false) {
         const startX = isExploding ? (_jX + c * pw) : edgePoints[i].x;
         const startY = isExploding ? (_jY + r * ph) : edgePoints[i].y;
         
+        let biasR = 1 - Math.pow(1 - Math.random(), 3);
+        let pieceWait = 1.0 + (levelMaxWait - 1.0) * biasR;
+
         const p = {
             id: i, c, r,
             x: startX, y: startY,
@@ -514,6 +534,7 @@ function _jInitPuzzle(isExploding = false) {
             held: false, offX: 0, offY: 0,
             driftState: isExploding ? 'exploding' : 'idle', 
             driftTimer: 0, idleTimer: 0, stateTimer: 0, justDropped: false,
+            waitDelay: pieceWait,
             noiseSeed: Math.random() * 9999,
             tilt: 0, 
             exRot: isExploding ? (Math.random() - 0.5) * 12 : 0, 
@@ -589,9 +610,6 @@ function _dJ(dt) {
     const won = (_jS === 5);
 
     if (!won) {
-        const totalPieces = _jP.length;
-        const dropDelay = 2.0 + Math.max(0, totalPieces - 9) * 0.2;
-
         _jP.forEach((p, i) => {
             if (p.held) { 
                 p.idleTimer = 0; 
@@ -623,7 +641,7 @@ function _dJ(dt) {
             }
 
             p.idleTimer += dt;
-            const threshold = p.justDropped ? dropDelay : 20.0;
+            const threshold = p.justDropped ? p.waitDelay : Math.max(20.0, p.waitDelay);
 
             if (p.driftState === 'idle') {
                 if (p.idleTimer >= threshold) {
@@ -692,25 +710,27 @@ function _dJ(dt) {
 
 function _jCheckWinClick() {
     let now = Date.now();
-    if (now - _jLastTouch < 50) return; 
-    _jLastTouch = now;
+    if (now - _lastWinClickTime < 100) return;
+    _lastWinClickTime = now;
 
     _jWinClickCount++;
     clearTimeout(_jWinClickTimer);
     
     _jWinClickTimer = setTimeout(() => {
-        if (_jWinClickCount === 2) {
+        let count = _jWinClickCount;
+        _jWinClickCount = 0;
+
+        if (count === 2) {
             _jLevel++;
             _jInitPuzzle(true);
             spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
             spawnGlow(W / 2, H / 2, '#a55fff', 30, 8);
-        } else if (_jWinClickCount >= 3) {
+        } else if (count >= 3) {
             _jInitPuzzle(true); 
             spawnParticles(W / 2, H / 2, W * 0.8, H * 0.8, 150);
             spawnGlow(W / 2, H / 2, '#559bff', 30, 8); 
         }
-        _jWinClickCount = 0;
-    }, 350); 
+    }, 450); 
 }
 
 const _sI = document.createElement('div');
@@ -1529,7 +1549,11 @@ function goBack() {
 canvas.addEventListener('click', e => { if (e.ctrlKey||e.metaKey) { handlePointerCtrl(e.clientX,e.clientY); return; } handlePointer(e.clientX,e.clientY); });
 
 canvas.addEventListener('touchstart', e => { 
-  e.preventDefault(); const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchMoved=false; mouseX=t.clientX; mouseY=t.clientY; 
+  e.preventDefault(); 
+  _isTouchActive = true;
+  setTimeout(() => _isTouchActive = false, 500);
+
+  const t=e.changedTouches[0]; touchStartX=t.clientX; touchStartY=t.clientY; touchMoved=false; mouseX=t.clientX; mouseY=t.clientY; 
   if(state==='_J') {
       if (_jS === 5) {
           _jCheckWinClick();
@@ -1570,7 +1594,9 @@ canvas.addEventListener('touchend', e => {
 },{passive:false});
 
 window.addEventListener('mousedown', e => {
-    if(e.target!==canvas) return; isMouseDown=true;
+    if(e.target!==canvas) return; 
+    if(_isTouchActive) return; 
+    isMouseDown=true;
     if(state==='_J') { 
         if (_jS === 5) {
             _jCheckWinClick();
